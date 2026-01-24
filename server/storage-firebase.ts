@@ -6,7 +6,7 @@ import {
   User,
   InsertUser,
   UpdateUser,
-} from "@shared/schema";
+} from "../shared/schema.js";
 
 export interface IStorage {
   getScores(): Promise<Score[]>;
