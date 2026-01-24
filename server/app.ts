@@ -35,10 +35,10 @@ app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
   let captured: Record<string, unknown> | undefined;
-  const orig = res.json;
-  res.json = function (body: unknown, ...args: unknown[]) {
+  const orig = res.json.bind(res);
+  res.json = function (body: unknown) {
     captured = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : undefined;
-    return orig.apply(res, [body, ...args]);
+    return orig(body);
   };
   res.on("finish", () => {
     const duration = Date.now() - start;
