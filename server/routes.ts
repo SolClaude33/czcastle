@@ -191,7 +191,12 @@ export function registerRoutes(app: Express): void {
   });
 
   app.get("/api/users", async (req, res) => {
-    const users = await storage.getAllUsers();
-    res.json(users);
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (err) {
+      console.error("[GET /api/users] Error:", err);
+      res.status(500).json({ message: "Failed to fetch users", error: String(err) });
+    }
   });
 }

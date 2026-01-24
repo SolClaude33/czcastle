@@ -4454,21 +4454,47 @@
     // Barra de usuario: foto Twitter a la izquierda, bloque con @username, wallet y puntuacion
     (function() {
       var el = document.getElementById('user-bar');
-      if (!el) return;
-      fetch('/api/auth/me', { credentials: 'include' })
-        .then(function(r) { return r.ok ? r.json() : null; })
-        .then(function(me) {
-          if (!me || (!me.twitterUsername && !me.wallet)) return;
-          var wallet = me.wallet;
-          var walletShort = (wallet && wallet.length >= 10) ? wallet.slice(0,6) + '…' + wallet.slice(-4) : (wallet || '—');
-          var name = (me.twitterUsername || 'user');
-          var initial = name.charAt(0).toUpperCase();
-          var photo = me.photoURL ? ('<img class="user-bar-avatar" src="' + me.photoURL.replace(/"/g, '&quot;') + '" alt="" />') : ('<div class="user-bar-fallback">' + initial + '</div>');
-          var block = '<div class="user-bar-block"><span>@' + name + '</span><span class="wallet">' + walletShort + '</span><span class="score">&#127942; ' + (me.highScore || 0).toLocaleString() + '</span></div>';
-          el.innerHTML = photo + block;
-          el.style.display = 'flex';
-        })
-        .catch(function() {});
+      if (!el) {
+        console.warn('[user-bar] Element not found');
+        return;
+      }
+      
+      // Esperar un poco para que el DOM esté completamente cargado
+      setTimeout(function() {
+        fetch('/api/auth/me', { credentials: 'include' })
+          .then(function(r) {
+            if (!r.ok) {
+              console.log('[user-bar] Not authenticated or error:', r.status);
+              return null;
+            }
+            return r.json();
+          })
+          .then(function(me) {
+            if (!me) {
+              console.log('[user-bar] No user data');
+              return;
+            }
+            
+            // Mostrar si tiene twitterUsername O wallet (más permisivo)
+            if (!me.twitterUsername && !me.wallet) {
+              console.log('[user-bar] No username or wallet');
+              return;
+            }
+            
+            var wallet = me.wallet || null;
+            var walletShort = (wallet && wallet.length >= 10) ? wallet.slice(0,6) + '…' + wallet.slice(-4) : (wallet || '—');
+            var name = (me.twitterUsername || 'user');
+            var initial = name.charAt(0).toUpperCase();
+            var photo = me.photoURL ? ('<img class="user-bar-avatar" src="' + me.photoURL.replace(/"/g, '&quot;') + '" alt="" />') : ('<div class="user-bar-fallback">' + initial + '</div>');
+            var block = '<div class="user-bar-block"><span>@' + name + '</span>' + (wallet ? '<span class="wallet">' + walletShort + '</span>' : '') + '<span class="score">&#127942; ' + (me.highScore || 0).toLocaleString() + '</span></div>';
+            el.innerHTML = photo + block;
+            el.style.display = 'flex';
+            console.log('[user-bar] Displayed for user:', name);
+          })
+          .catch(function(err) {
+            console.error('[user-bar] Error:', err);
+          });
+      }, 500);
     })();
   </script>
 </body>

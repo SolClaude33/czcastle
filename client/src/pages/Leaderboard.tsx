@@ -7,7 +7,7 @@ import { Link } from "wouter";
 import seal_512 from "@assets/seal_512.png";
 
 export default function Leaderboard() {
-  const { data: users, isLoading, refetch } = useUsers();
+  const { data: users, isLoading, refetch, error } = useUsers();
   const { language, setLanguage, t } = useLanguage();
   const [activeTab, setActiveTab] = useState<"global" | "weekly" | "latest">("global");
   const [searchQuery, setSearchQuery] = useState("");
@@ -24,6 +24,16 @@ export default function Leaderboard() {
   const filteredUsers = searchQuery 
     ? sortedUsers.filter(u => u.twitterUsername?.toLowerCase().includes(searchQuery.toLowerCase()))
     : sortedUsers;
+
+  // Debug logging
+  useEffect(() => {
+    if (users) {
+      console.log("[Leaderboard] Users loaded:", users.length, "users with highScore:", sortedUsers.length);
+    }
+    if (error) {
+      console.error("[Leaderboard] Error loading users:", error);
+    }
+  }, [users, error, sortedUsers.length]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -198,8 +208,18 @@ export default function Leaderboard() {
                     <div className="flex items-center justify-center py-12">
                       <Loader2 className="w-12 h-12 animate-spin text-[#d4a853]" />
                     </div>
+                  ) : error ? (
+                    <div className="text-center py-12 text-xl text-red-500">
+                      Error loading users: {error instanceof Error ? error.message : String(error)}
+                    </div>
                   ) : filteredUsers.length === 0 ? (
-                    <div className="text-center py-12 text-xl text-[#7a6a5a]">{t("no_data")}</div>
+                    <div className="text-center py-12 text-xl text-[#7a6a5a]">
+                      {users && users.length === 0 
+                        ? "No users registered yet" 
+                        : users && users.length > 0 
+                        ? `No users with scores yet (${users.length} users registered)` 
+                        : t("no_data")}
+                    </div>
                   ) : (
                     filteredUsers.map((user, index) => (
                       <div 

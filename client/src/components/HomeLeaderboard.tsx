@@ -1,4 +1,4 @@
-import { useScores } from "@/hooks/use-scores";
+import { useUsers } from "@/hooks/use-users";
 import { Loader2 } from "lucide-react";
 
 interface HomeLeaderboardProps {
@@ -6,10 +6,14 @@ interface HomeLeaderboardProps {
 }
 
 export function HomeLeaderboard({ maxItems = 10 }: HomeLeaderboardProps) {
-  const { data: scores, isLoading } = useScores();
+  const { data: users, isLoading } = useUsers();
 
-  const topScores = scores
-    ? [...scores].sort((a, b) => b.score - a.score).slice(0, maxItems)
+  // Filtrar usuarios con highScore > 0 y ordenar por highScore descendente
+  const topUsers = users
+    ? [...users]
+        .filter((u) => u.highScore != null && u.highScore > 0)
+        .sort((a, b) => (b.highScore ?? 0) - (a.highScore ?? 0))
+        .slice(0, maxItems)
     : [];
 
   if (isLoading) {
@@ -33,7 +37,7 @@ export function HomeLeaderboard({ maxItems = 10 }: HomeLeaderboardProps) {
     );
   }
 
-  if (topScores.length === 0) {
+  if (topUsers.length === 0) {
     return (
       <div
         style={{
@@ -71,13 +75,14 @@ export function HomeLeaderboard({ maxItems = 10 }: HomeLeaderboardProps) {
         overflow: "hidden",
       }}
     >
-      {topScores.map((score, index) => {
+      {topUsers.map((user, index) => {
         const rank = index + 1;
         const isTopThree = rank <= 3;
+        const username = user.twitterUsername || "user";
         
         return (
           <div
-            key={score.id}
+            key={user.id}
             style={{
               display: "flex",
               alignItems: "center",
@@ -115,9 +120,9 @@ export function HomeLeaderboard({ maxItems = 10 }: HomeLeaderboardProps) {
                   whiteSpace: "nowrap",
                   maxWidth: "180px",
                 }}
-                title={score.username}
+                title={username}
               >
-                {score.username}
+                @{username}
               </span>
             </div>
             <span
@@ -128,7 +133,7 @@ export function HomeLeaderboard({ maxItems = 10 }: HomeLeaderboardProps) {
                 fontFamily: "monospace",
               }}
             >
-              {score.score.toLocaleString()}
+              {(user.highScore ?? 0).toLocaleString()}
             </span>
           </div>
         );
