@@ -1,0 +1,108 @@
+Te entiendo: el tooltip actual está “chocando” y el texto no se lee porque el panel (y/o el texto) está usando colores y tamaños pensados para el fondo verde anterior, y ahora tu background es más detallado. Además el tooltip es grande y el header se está pegando al borde superior del panel.
+
+Te dejo un arreglo 100% práctico en 3 pasos: tamaño, padding, y contraste de texto (sin rehacer todo el sistema).
+
+1) Haz el tooltip más pequeño (encaje mejor)
+
+En tu createLevelTooltip() (o donde creas ese panel), reduce escala del contenedor completo:
+
+tooltipContainer.setScale(0.85);
+
+
+Si no usas container, aplica a cada parte (panel, header, body, botón):
+
+panel.setScale(0.85);
+header.setScale(0.85);
+playBtn.setScale(0.85);
+
+
+✅ Con esto de inmediato deja de “chocar” y se siente más integrado.
+
+2) Corrige el “padding”: separa el header del borde
+
+El problema de “chocando” casi siempre es porque el header ribbon está demasiado arriba.
+
+Si tu header está en algo como y = -72, bájalo un poco:
+
+header.setY(-62);       // antes -72
+headerText.setY(-62);   // igual que el header
+
+
+Si no tienes posiciones relativas, baja el y del panel completo:
+
+tooltipContainer.y += 8;
+
+3) Haz el texto legible (contraste real)
+
+Ahora mismo tu texto se pierde porque:
+
+el body es oscuro
+
+el texto del header está oscuro
+
+y el fondo del mapa detrás tiene colores fuertes
+
+✅ Regla rápida:
+
+Header text: oscuro sobre dorado (bien)
+
+Body text: claro sobre azul oscuro (necesitas #E9D8A6 / #FFD76A)
+
+Usa esto:
+
+headerText.setColor('#1B1208'); // oscuro, se lee sobre ribbon dorado
+headerText.setFontSize(14);
+
+bodyText.setColor('#F5E6B8');   // crema claro
+bodyText.setFontSize(12);
+bodyText.setShadow(1, 1, '#000000', 2, false, true); // mejora lectura en fondo complejo
+
+
+Y asegúrate de que el body panel sea suficientemente oscuro:
+
+// si el body es una imagen no aplica. Si es Graphics:
+bodyBg.fillStyle(0x0a1022, 0.95); // navy oscuro con alpha
+
+4) Bonus: si “no se ve absolutamente nada”
+
+Eso suena a depth (z-index) o a que el tooltip se está creando fuera de cámara.
+
+Fuerza depth alto:
+tooltipContainer.setDepth(9999);
+
+
+o para cada elemento:
+
+panel.setDepth(9999);
+header.setDepth(10000);
+playBtn.setDepth(10001);
+
+Y asegúrate que el tooltip está dentro del canvas
+
+Si lo posicionas en x,y del castillo, añade un clamp simple:
+
+tooltipContainer.x = Phaser.Math.Clamp(tooltipContainer.x, 140, 820);
+tooltipContainer.y = Phaser.Math.Clamp(tooltipContainer.y, 120, 420);
+
+
+(Valores aproximados para 960×540 y tooltip 250×200 a escala 0.85)
+
+Resumen (lo mínimo que debes hacer ya)
+
+setScale(0.85) al tooltip
+
+bajar header -72 → -62
+
+body text #F5E6B8 + shadow
+
+setDepth(9999) al tooltip
+
+Con eso:
+
+deja de chocar
+
+se lee perfecto
+
+se ve por encima del mapa
+
+Si me pegas el bloque actual de tu createLevelTooltip() (20–40 líneas), te devuelvo el snippet exacto con valores ajustados al 100% a tu código.

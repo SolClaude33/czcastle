@@ -1,0 +1,79 @@
+Te pasa porque en una pestaña normal el “viewport” NO es 1920×1080 (la barra de tabs/URL come altura). Entonces tu layout 16:9 sí o sí queda con “márgenes” si usas contain (para no recortar). Eso no es bug: es matemática.
+
+Como tú quieres Opción C (sin recorte), la forma correcta de “corregirlo” es:
+
+✅ Mantener contain (no recorta nunca)
+✅ Pero rellenar el espacio sobrante con un “backdrop” que use tu mismo arte (para que no se vea vacío)
+
+Así se verá “full” en cualquier pestaña, sin cortar el frame.
+
+Fix definitivo: Backdrop + Canvas (sin recorte)
+1) CSS: añade un fondo “blurred” detrás del canvas
+
+Pega esto en tu CSS (en .viewport):
+
+.viewport{
+  position:fixed;
+  inset:0;
+  overflow:hidden;
+  background:#050816; /* fallback */
+}
+
+/* Backdrop que rellena cualquier margen */
+.viewport::before{
+  content:"";
+  position:absolute;
+  inset:-40px;
+  background: url("/img/frame.png") center/cover no-repeat; /* usa tu frame 2048x1152 */
+  filter: blur(24px) saturate(1.1);
+  transform: scale(1.08);
+  opacity: 0.9;
+}
+
+
+Y asegúrate que tu canvas esté por encima:
+
+.canvas{ position:absolute; z-index:1; }
+
+
+Esto hace que aunque el canvas no llene por ratio, el “espacio” se vea como parte del arte, no como vacío.
+
+2) JS: usa CONTAIN real (sin “cover”) y visualViewport
+
+Tu función de resize debe ser así:
+
+const W = 2048, H = 1152;
+
+function layout(){
+  const vw = window.visualViewport?.width ?? window.innerWidth;
+  const vh = window.visualViewport?.height ?? window.innerHeight;
+
+  const scale = Math.min(vw / W, vh / H); // CONTAIN: nunca recorta
+  const left  = Math.round((vw - W * scale) / 2);
+  const top   = Math.round((vh - H * scale) / 2);
+
+  const el = document.getElementById("canvas");
+  el.style.transformOrigin = "top left";
+  el.style.transform = `translate3d(${left}px, ${top}px, 0) scale(${scale})`;
+}
+
+window.addEventListener("resize", layout);
+window.visualViewport?.addEventListener("resize", layout);
+layout();
+
+Resultado
+
+En Replit Preview se verá igual.
+
+En pestaña normal ya no se verá “espacio vacío”: se rellena con un fondo coherente.
+
+No hay recorte abajo (porque es contain).
+
+Se siente “full screen” como tu referencia con nubes.
+
+Nota importante (para que no te frustre)
+
+No existe una forma de que el frame 16:9 toque siempre los bordes sin margen y sin recorte en cualquier ventana, porque las ventanas cambian de proporción.
+Este método es el estándar pro: mantener el arte completo + backdrop que rellena.
+
+Si quieres, te paso también una variante “más pixel” (sin blur) que rellena con un tile/pattern del mismo azul oscuro para que parezca aún más retro.

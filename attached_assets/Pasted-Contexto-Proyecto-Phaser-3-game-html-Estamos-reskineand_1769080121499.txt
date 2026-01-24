@@ -1,0 +1,72 @@
+Contexto:
+Proyecto Phaser 3 (game.html). Estamos reskineando WorldMapScene con PNGs en /assets/ui/.
+NO quiero cambios grandes ni refactors. NO tocar lógica de niveles, castillos, caminos, árboles, rocas, círculos, ni selección.
+Solo integrar assets UI faltantes y usarlos en el tooltip.
+
+Archivos YA existentes en /assets/ui/:
+- /assets/ui/worldmap_bg.png
+- /assets/ui/worldmap_hint_panel.png
+- /assets/ui/worldmap_level_info_bg.png
+- /assets/ui/worldmap_title_panel.png
+
+Archivos NUEVOS que voy a copiar a /assets/ui/ (deben cargarse y usarse):
+- /assets/ui/worldmap_level_info_header.png
+- /assets/ui/worldmap_level_info_body.png
+- /assets/ui/worldmap_play_btn.png
+- /assets/ui/worldmap_play_btn_pressed.png
+
+Objetivo:
+1) Preload (BootScene o donde cargas UI global):
+Agregar exactamente estas líneas (y NO cambiar otras rutas):
+this.load.image('worldmap_level_info_header', '/assets/ui/worldmap_level_info_header.png');
+this.load.image('worldmap_level_info_body', '/assets/ui/worldmap_level_info_body.png');
+this.load.image('worldmap_play_btn', '/assets/ui/worldmap_play_btn.png');
+this.load.image('worldmap_play_btn_pressed', '/assets/ui/worldmap_play_btn_pressed.png');
+
+2) WorldMapScene -> createLevelTooltip:
+Sin cambiar la lógica de tooltip (qué nivel, cómo se posiciona, qué hace el botón play), reemplazar SOLO la parte visual por capas PNG:
+
+- Base del tooltip: usar 'worldmap_level_info_bg' centrado.
+- Ribbon header arriba: usar 'worldmap_level_info_header' (centrado) y el texto del título encima.
+- Body panel: usar 'worldmap_level_info_body' (centrado) y el texto/descripción encima (wordWrap).
+- Botón play: usar 'worldmap_play_btn' abajo dentro del panel, con estados:
+  pointerdown -> setTexture('worldmap_play_btn_pressed')
+  pointerup -> setTexture('worldmap_play_btn') y ejecutar la MISMA acción actual de start level
+  pointerout -> volver a 'worldmap_play_btn'
+
+IMPORTANTE:
+- No agregar texto dentro de imágenes, solo texto Phaser encima.
+- No mover castillos/caminos/árboles.
+- Mantener posiciones generales del tooltip igual (solo ajustar offsets internos si el nuevo arte lo requiere).
+- Mantener layering: tooltip encima de todo.
+- No duplicar hint/title panel si ya fueron integrados antes (si existen, no tocar).
+
+Entrega:
+Devuélveme un diff claro de los cambios: (A) preload añadido y (B) createLevelTooltip modificado, sin refactor grande.
+Mini-checklist para que no haya errores
+Antes de correr:
+
+Abre en navegador estas URLs y confirma que cargan:
+
+/assets/ui/worldmap_level_info_header.png
+
+/assets/ui/worldmap_level_info_body.png
+
+/assets/ui/worldmap_play_btn.png
+
+/assets/ui/worldmap_play_btn_pressed.png
+
+Si alguna 404 → es nombre/ruta.
+
+Offsets sugeridos (por si Replit te lo pregunta)
+Dentro del container del tooltip (0,0 centro):
+
+bg: (0, 0)
+
+header: (0, -72)
+
+body: (0, -10)
+
+play button: (0, 70)
+
+(Esto calza con el layout típico 250×200.)

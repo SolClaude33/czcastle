@@ -1,0 +1,70 @@
+Based on xAI's open-sourced x-algorithm repository
+The TL;DR
+X's For You feed is powered by a Grok-based transformer model that predicts the probability you'll take various actions on a post. Your final ranking score is a weighted sum of these predicted engagements—positive actions (likes, replies, reposts) push you up; negative actions (blocks, mutes, reports) push you down.
+The key insight: X has eliminated nearly all hand-engineered features. The algorithm is trained entirely on engagement patterns. This means gaming it requires understanding what behaviors the model associates with high-engagement content, not keyword stuffing or timing hacks.
+How the Algorithm Actually Works
+The Pipeline
+When you open For You, here's what happens:
+Candidate Sourcing — The system pulls posts from two pools:Thunder (In-Network): Recent posts from accounts you follow
+Phoenix Retrieval (Out-of-Network): ML-discovered posts from the global corpus via embedding similarity
+
+Scoring — Each candidate gets scored by Phoenix, the Grok-based ranker, which predicts probabilities for:P(favorite) — Will they like it?
+P(reply) — Will they reply?
+P(repost) — Will they repost?
+P(quote) — Will they quote-tweet?
+P(click) — Will they click through?
+P(profile_click) — Will they visit the author's profile?
+P(video_view) — Will they watch the video?
+P(share) — Will they share externally?
+P(dwell) — Will they spend time on it?
+P(follow_author) — Will they follow the author?
+And negative signals: P(not_interested), P(block_author), P(mute_author), P(report)
+
+Weighted Score — These probabilities are combined: Score = Σ(weight × P(action))
+Diversity Pass — An "Author Diversity Scorer" attenuates repeated appearances from the same author
+Filtering — Removes duplicates, blocked accounts, muted keywords, old posts, previously-seen content
+The Actionable Playbook
+What the Weights Tell Us
+Positive weights (what you want to maximize):
+Favorites, reposts, quotes — High-weight positive signals
+Replies — Conversation starters win
+Dwell time — Posts people spend time reading/watching
+Profile clicks and follows — The strongest signal of genuine interest
+Negative weights (what tanks your reach):
+Blocks — Post shown to someone who then blocks you = disaster
+Mutes — Slightly less damaging but still penalized
+Reports — Obvious
+"Not interested" — Users clicking that option
+Optimizing for Each Signal
+For P(favorite): Strong, clear opinions. Resonance with audience identity. Quotable one-liners. Satisfying conclusions.
+For P(reply): Leave conversational hooks. Ask implicit questions. Make slightly incomplete arguments that invite completion. Be contrarian-but-not-offensive.
+For P(repost): Make people look smart or in-the-know for sharing. Useful frameworks > hot takes. Things people want attributed to them.
+For P(quote): Leave room for commentary. Hot takes that demand response. Screenshots of things worth commenting on.
+For P(dwell): Longer-form content that requires reading. Threads that pull people in. Complex visuals. Videos that hook in the first second.
+For P(profile_click) and P(follow): Demonstrate consistent niche expertise. Make people curious about more. Have a clear persona.
+Avoiding negative signals: Don't be spammy. Don't post to people who clearly don't want your content. Don't be inflammatory without substance. Don't post in topics where you'll attract blocks.
+The Out-of-Network Game
+The Phoenix Retrieval system uses a two-tower architecture:
+User Tower: Your engagement history encoded into an embedding
+Candidate Tower: All posts encoded into embeddings
+Match: Dot product similarity finds posts "like" what you've engaged with
+Implication: Your content's embedding matters. Posts that are semantically similar to content that historically gets high engagement from certain user types will be retrieved for those users.
+How to use this: Be consistent in your niche. The embedding of your content should clearly cluster with high-engagement content in your space. Random topic-switching dilutes your embedding signal.
+The Candidate Isolation Insight
+Here's a subtle but important detail: during ranking, candidates cannot attend to each other. Each post is scored independently against your user context.
+Why this matters: Your post's score doesn't depend on what other posts happen to be in the batch. This means the algorithm is more stable and predictable than you might expect. Consistent quality beats timing-based competition.
+What Doesn't Work Anymore
+Because X removed hand-engineered features, old-school tricks are dead:
+❌ Keyword optimization — No manual keyword signals ❌ Hashtag stuffing — Embeddings make this irrelevant ❌ Follow-for-follow — Doesn't affect scoring ❌ Posting at "optimal times" — Candidate sourcing pulls recent posts; the model handles the rest ❌ Engagement pods — If those users then block/mute others, it pollutes your signal
+What Actually Works
+✅ Genuine engagement patterns — Reply thoughtfully to others; your engagement history feeds your user embedding
+✅ Niche consistency — Build a clear embedding signature
+✅ Hook + substance — You need dwell time, not just clicks
+✅ Conversational content — Reply probability is explicitly scored
+✅ Avoid negative signal users — Don't optimize for reach to people who'll block you
+✅ Multi-action potential — Best posts trigger multiple positive actions (like + reply + repost)
+The Meta-Strategy
+The algorithm is a Grok-based transformer trained on billions of engagement events. It has learned, at scale, what content generates genuine engagement from specific user types.
+You can't trick it. You can only feed it what it wants: content that makes people want to engage positively.
+The most algorithmic-savvy strategy is, ironically, to make genuinely good content for a well-defined audience who won't block you.
+Source: github.com/xai-org/x-algorithm

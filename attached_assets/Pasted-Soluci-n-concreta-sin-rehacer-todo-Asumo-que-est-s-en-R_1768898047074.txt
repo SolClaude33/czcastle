@@ -1,0 +1,96 @@
+Solución concreta (sin rehacer todo)
+
+Asumo que estás en React (porque Replit AI habló de Home.tsx). Aquí tienes el cambio exacto.
+
+A) Cambia el frame a <img> y elimina cover
+
+En tu Home.tsx (o componente equivalente), asegúrate de renderizar así:
+
+<img className="layer frame" src="/img/frame.png" alt="" draggable={false} />
+
+
+Y en CSS:
+
+.frame{
+  left:0px; top:0px;
+  width:2048px; height:1143px;
+}
+
+
+⚠️ IMPORTANTE: borra cualquier .frame{ background: ... cover }.
+
+B) Cambia el sistema de centrado/escala para que NO corte
+
+En vez de left:50% + translate(-50%,-50%), usa left/top calculados (esto evita cortes por redondeo).
+
+main scaling (React)
+import { useLayoutEffect, useState } from "react";
+const W = 2048, H = 1143;
+
+export default function Home(){
+  const [canvasStyle, setCanvasStyle] = useState<React.CSSProperties>({});
+
+  useLayoutEffect(() => {
+    const onResize = () => {
+      const pad = 8; // margen de seguridad para que NUNCA se corte el frame
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+
+      const raw = Math.min((vw - pad*2) / W, (vh - pad*2) / H);
+      const s = Math.floor(raw * 4) / 4; // escala en pasos de 0.25 (reduce blur/seams)
+      const scale = Math.max(0.25, s);
+
+      const left = Math.round((vw - W * scale) / 2);
+      const top  = Math.round((vh - H * scale) / 2);
+
+      setCanvasStyle({
+        position: "absolute",
+        left: `${left}px`,
+        top: `${top}px`,
+        width: `${W}px`,
+        height: `${H}px`,
+        transform: `scale(${scale})`,
+        transformOrigin: "top left",
+      });
+    };
+
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  return (
+    <div className="viewport">
+      <div className="canvas" style={canvasStyle}>
+        {/* frame 1:1 */}
+        <img className="layer frame" src="/img/frame.png" alt="" draggable={false} />
+
+        {/* resto de capas */}
+        {/* hero, botones, cards, panel, flow, etc */}
+      </div>
+    </div>
+  );
+}
+
+CSS base
+.viewport{position:fixed; inset:0; background:#050816; overflow:hidden;}
+.canvas{image-rendering:pixelated;}
+.layer{position:absolute; image-rendering:pixelated; user-select:none; -webkit-user-drag:none;}
+
+C) Por qué esto arregla tu “se ve por partes”
+
+El frame deja de “cover-cropear” → ya no se corta el borde.
+
+La escala por pasos (0.25) reduce el blur entre assets y el “look” de collage.
+
+Left/top calculados evita ese 1–2px que se pierde con translate/centering.
+
+Mini checklist (para que quede 1:1)
+
+frame.png debe ser exactamente 2048×1143
+
+overlay reference.png debe ir en left:0; top:0; width:2048; height:1143
+
+NO uses background-size: cover en ninguna capa que deba calzar pixel-perfect
+
+Mantén todos los assets en position:absolute (no flex/grid)

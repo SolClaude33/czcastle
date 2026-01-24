@@ -1,0 +1,74 @@
+2) Gameplay: recolor del camino (SEGURO)
+
+No cambias waypoints, solo colores para que encaje más con OneBattleLegend.
+
+Paleta recomendada (conservadora)
+
+Outer border (borde oscuro): 0x2B1F12 (más profundo)
+
+Mid border (borde medio): 0x7A5A2E (tierra dorada)
+
+Dirt (relleno): 0xB5894A (arena dorada suave)
+
+Si lo quieres más “navy/gold”, te lo ajusto, pero esto conserva el look “tierra”.
+
+3) Dialog scene + Victory/Defeat: coherencia OneBattleLegend
+
+Esto ya lo estás haciendo bien con panels PNG + texto encima. Lo mismo aplica:
+
+Panel PNG con transparencia
+
+Texto Phaser encima con setResolution(2) + stroke oscuro
+
+NO tocar lógica, solo skin.
+
+4) Prompt para Replit: integrar battle_bg.png + recolor del camino (sin romper nada)
+
+Cópialo tal cual en Replit AI:
+
+Quiero reskinear BattleScene (Gameplay) sin cambiar lógica del juego. No tocar waypoints, isOnPath(), MAP.PATH_WIDTH, ni posiciones de castillos. Ya cambié castillos; quiero mantener árboles y rocas.
+
+Nuevo asset:
+- client/public/assets/ui/battle_bg.png (960x540)
+- se sirve como /assets/ui/battle_bg.png
+
+Tareas:
+
+1) Preload:
+Agregar en BootScene (o preload global):
+this.load.image('battle_bg', '/assets/ui/battle_bg.png');
+
+2) BattleScene:
+En la parte donde actualmente dibuja el pasto como rectángulo (grassColor / this.add.rectangle(...).setDepth(0)),
+reemplazar SOLO eso por:
+const bg = this.add.image(MAP.WORLD_WIDTH/2, MAP.WORLD_HEIGHT/2, 'battle_bg').setOrigin(0.5);
+bg.setDepth(0);
+
+No mover ni eliminar árboles/rocas. Deben seguir apareciendo como ahora.
+
+3) Recolor del camino (solo valores hex):
+Cambiar los colores de las 3 capas del camino, sin tocar coordenadas ni waypoints:
+- outerBorder: 0x4A3A1A -> 0x2B1F12
+- midBorder: 0x8B7340 -> 0x7A5A2E
+- COLORS.DIRT (o el fill del pathGraphics): ponerlo en 0xB5894A
+
+4) Mantener pixel crisp:
+No tocar render config si ya tiene pixelArt:true y antialias:false.
+
+Entrega:
+Devuélveme el diff exacto: preload añadido + el reemplazo del rectángulo por imagen + los 3 hex cambiados.
+No refactor grande.
+
+Checklist rápido
+
+✅ battle_bg.png está exactamente 960×540
+
+✅ Preload con ruta /assets/ui/battle_bg.png
+
+✅ Depth del BG = 0 (el camino va arriba)
+
+✅ Árboles/rocas quedan igual
+
+✅ Solo cambias 3 hex del camino
+
+Si quieres, el siguiente paso para que “se sienta 100% OneBattleLegend” sin tocar lógica es el panel inferior HUD: cambiar solo colores/bordes (y luego más adelante reemplazar por PNG 960×100 con transparencia). Si me pasas el bloque createUnitButton() y donde dibujas el panel inferior, te doy un patch mínimo.

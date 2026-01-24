@@ -1,0 +1,81 @@
+Sí, me parece una muy buena idea como MenuScene: reutilizas el mismo “lenguaje visual” del loading/landing, no introduces UI nueva, y la transición Boot → Menu se siente coherente.
+
+Lo único importante es hacerlo bien en Phaser para que:
+
+el “loading bar” no exista en Menu (porque ya cargó),
+
+el botón PLAY NOW quede centrado y clickeable,
+
+y el fondo/frames no se vean “fuera del marco”.
+
+Recomendación exacta para MenuScene
+
+Usa el mismo loading_bg.png como fondo, pero en MenuScene:
+
+NO dibujes barra,
+
+NO uses progress_bar_*,
+
+y en su lugar coloca tu botón btn_play.png (que ya tienes del landing) y listo.
+
+MenuScene (código base)
+class MenuScene extends Phaser.Scene {
+  constructor() {
+    super('MenuScene');
+  }
+
+  preload() {
+    // Si ya lo cargaste en BootScene, NO hace falta recargar.
+    // Pero por seguridad en dev, puedes dejarlo.
+    this.load.image('menu_bg', '/assets/ui/loading_bg.png');
+    this.load.image('btn_play', '/assets/ui/btn_play.png'); // copia tu btn_play.png a assets/ui/
+  }
+
+  create() {
+    const w = this.cameras.main.width;
+    const h = this.cameras.main.height;
+
+    // Fondo (contain)
+    const bg = this.add.image(w/2, h/2, 'menu_bg').setOrigin(0.5);
+    const s = Math.min(w / bg.width, h / bg.height);
+    bg.setScale(s);
+
+    // Botón Play Now (centrado un poco abajo)
+    const btn = this.add.image(w/2, h*0.65, 'btn_play').setOrigin(0.5);
+    btn.setScale(s * 0.55); // ajusta si lo ves grande/pequeño
+
+    btn.setInteractive({ useHandCursor: true });
+    btn.on('pointerdown', () => {
+      this.scene.start('WorldMapScene');
+    });
+
+    // Hover (opcional)
+    btn.on('pointerover', () => btn.setTint(0xffffff));
+    btn.on('pointerout', () => btn.clearTint());
+  }
+}
+
+Lo que necesitas (mínimo)
+
+Copiar el botón del landing a:
+client/public/assets/ui/btn_play.png
+
+Puedes usar el btn_play.png que ya tienes en React (el del landing).
+
+En BootScene sigues yendo a MenuScene (ya lo tienes).
+
+Sobre tu punto del “loading fuera del marco”
+
+Eso ya lo solucionas en MenuScene porque:
+
+no hay barra,
+
+solo fondo + botón,
+
+y el fondo es un PNG completo con marco.
+
+Si quieres que se vea EXACTO como tu mock
+
+Dime qué prefieres para MenuScene:
+
+A) Solo botón “PLAY NOW” (limpio, rápido)

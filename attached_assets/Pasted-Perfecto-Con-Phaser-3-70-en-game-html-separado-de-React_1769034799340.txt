@@ -1,0 +1,143 @@
+Perfecto. Con Phaser 3.70 en game.html (separado de React) y canvas 960×540, lo correcto es:
+
+El loader nuevo se dibuja en 960×540 pero usando assets 2048×1152 y escalándolos con contain.
+
+BootScene carga solo lo mínimo del UI del loading, lo muestra, y luego precarga el resto del juego.
+
+Al finalizar: BootScene → LevelIntroScene (como ya tienes).
+
+Abajo te dejo el código listo para copiar y pegar en tu BootScene.
+
+1) Coloca estos archivos en tu proyecto
+
+Ejemplo de ruta (ajústala a tu repo):
+
+assets/ui/loading_bg.png          (2048×1152)
+assets/ui/progress_bar_frame.png  (2048×128)
+assets/ui/progress_bar_fill.png   (2048×128)
+
+
+Si aún no los has subido: usa los que te dejé antes (loading_mock_2048x1152 + progress_bar_*).
+
+2) BootScene (Phaser 3.70) — loader nuevo con progreso real
+
+Reemplaza tu BootScene por esto (o adapta el preload):
+
+export default class BootScene extends Phaser.Scene {
+  constructor() {
+    super("BootScene");
+  }
+
+  preload() {
+    // 1) Carga SOLO lo necesario para dibujar el loading UI
+    this.load.image("loading_bg", "assets/ui/loading_bg.png");
+    this.load.image("bar_frame", "assets/ui/progress_bar_frame.png");
+    this.load.image("bar_fill", "assets/ui/progress_bar_fill.png");
+
+    // Cuando termine esto, arrancamos el preload real del juego
+    this.load.once("complete", () => {
+      this.createLoadingUI();
+      this.preloadGameAssets();
+    });
+  }
+
+  create() {
+    // vacío, esperamos a "complete" del preload mínimo
+  }
+
+  createLoadingUI() {
+    const { width, height } = this.scale;
+
+    // --- Fondo (contain en 960x540) ---
+    const bg = this.add.image(width / 2, height / 2, "loading_bg");
+    bg.setOrigin(0.5);
+
+    const scale = Math.min(width / bg.width, height / bg.height);
+    bg.setScale(scale);
+
+    // --- Barra centrada abajo ---
+    // Ajusta la Y para que quede como el mock (en 960x540)
+    const barY = height * 0.80;
+
+    const barFrame = this.add.image(width / 2, barY, "bar_frame").setOrigin(0.5);
+    barFrame.setScale(scale);
+
+    const barFill = this.add.image(width / 2, barY, "bar_fill").setOrigin(0.5);
+    barFill.setScale(scale);
+
+    // Crop inicial (0%)
+    const fullW = barFill.width;
+    const fullH = barFill.height;
+    barFill.setCrop(0, 0, 0, fullH);
+
+    // Si quieres el texto LOADING real (si tu bg ya lo tiene, comenta esto)
+    const loadingText = this.add.text(width / 2, barY - 40 * scale, "LOADING...", {
+      fontFamily: "monospace",
+      fontSize: `${Math.round(18 * scale)}px`,
+      color: "#ffd76a",
+    }).setOrigin(0.5);
+
+    // --- Progress hook ---
+    this.load.on("progress", (p) => {
+      const cropW = Math.floor(fullW * p);
+      barFill.setCrop(0, 0, cropW, fullH);
+      // loadingText.setText(`LOADING... ${Math.round(p * 100)}%`);
+    });
+
+    // Limpieza al terminar
+    this.load.once("complete", () => {
+      this.load.off("progress");
+    });
+
+    // guarda refs por si quieres destruir después
+    this._loadingUI = { bg, barFrame, barFill, loadingText };
+  }
+
+  preloadGameAssets() {
+    // 2) Aquí va TU lista real de assets del juego
+    // EJEMPLO:
+    // this.load.image("tiles", "assets/tiles.png");
+    // this.load.spritesheet("player", "assets/player.png", { frameWidth: 32, frameHeight: 32 });
+    // this.load.audio("sfx_click", "assets/sfx/click.mp3");
+    //
+    // IMPORTANT: No llames this.load.start() si ya estabas en preload normal.
+    // Pero como ya terminamos un preload y queremos otro, SÍ lo iniciamos:
+    //
+    // Si tu boot ya cargaba todo en el preload original, simplemente mueve esa lista aquí.
+
+    // (Pega aquí el contenido original de preload() que tenías antes)
+
+    this.load.once("complete", () => {
+      // 3) Siguiente escena (según tu flujo)
+      this.scene.start("LevelIntroScene");
+    });
+
+    this.load.start();
+  }
+}
+
+3) “No quiero que aparezca CASTLE CLASH DUEL”
+
+Eso viene del loading viejo. Con este BootScene nuevo ya no se dibuja nada de eso.
+Si aún aparece, es porque:
+
+tu BootScene viejo sigue corriendo (no se reemplazó bien), o
+
+el texto está hardcodeado en otro lado (LevelIntroScene o un DOM overlay en game.html).
+
+4) Nota sobre rendimiento / nitidez en 960×540
+
+Como el loading_bg es 2048×1152, Phaser lo escala hacia abajo. Para que el look pixel se mantenga:
+
+Asegúrate de crear el game con:
+
+render: { pixelArt: true, antialias: false }
+
+
+y/o:
+
+this.game.renderer.config.antialias = false;
+
+5) Lo que te recomiendo después (para que sea perfecto)
+
+Exporta una versión del loading_bg.png en 960×540 también (misma estética) para que sea 1:1 y no dependa del scaling. Mantienes el 2048×1152 para web/marketing y el 960×540 para juego.

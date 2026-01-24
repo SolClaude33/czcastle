@@ -1,0 +1,138 @@
+Listo. Tu estructura está bien; lo que te está matando el “feeling” son 4 detalles puntuales (y los arreglamos sin tocar lógica):
+
+Texto sin font pixel → aunque pixelArt: true, el texto de Phaser se rasteriza con fuente normal y se ve “raro”.
+
+Stroke del título está al revés: tienes stroke dorado sobre ribbon dorado → ensucia.
+
+Desc/stats están un poco “mal centrados” (orígenes distintos) y el lineSpacing está ok pero falta wordWrap.
+
+Botón tapa la flecha del PNG (tu bg tiene arrow abajo). Solución: subir botón o subir un poco todo el body.
+
+Aquí va tu createLevelTooltip() corregido (cópialo y reemplázalo). Te dejo cambios minimalistas.
+
+✅ CSS del canvas (para pixel-crisp)
+
+Cámbialo a esto:
+
+canvas {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+✅ createLevelTooltip corregido (pixel + legible + flecha visible)
+createLevelTooltip() {
+  // Mantengo tu objeto, pero no uses arrowSize aquí (ya viene en el PNG)
+  const baseHeight = 170;
+  this.tooltip = {
+    width: 250,
+    panelHeight: baseHeight,
+    paddingX: 16,
+    baseHeaderHeight: 40,
+    sectionGap: 6,
+    contentGap: 6,
+    buttonArea: 70,
+    paddingBottom: 18,
+    arrowSize: 0,   // <-- IMPORTANTE: arrow ya está en PNG
+    margin: 18
+  };
+
+  this.floatingPanel = this.add.container(0, 0);
+  this.floatingPanel.setDepth(60);
+  this.floatingPanel.setAlpha(0);
+  this.mapContainer.add(this.floatingPanel);
+
+  // PNG background with built-in arrow
+  this.tooltip.bgImage = this.add.image(0, 0, 'worldmap_level_info_bg').setOrigin(0.5);
+  this.floatingPanel.add(this.tooltip.bgImage);
+
+  // Header ribbon PNG
+  this.tooltip.headerRibbon = this.add.image(0, -72, 'worldmap_level_info_header').setOrigin(0.5);
+  this.floatingPanel.add(this.tooltip.headerRibbon);
+
+  // --- TITLE: más legible (dark stroke, no dorado) ---
+  this.tooltip.titleText = this.add.text(0, -72, '', {
+    fontFamily: 'monospace',     // pixel-feel sin cargar fuentes externas
+    fontSize: '14px',
+    color: '#2A1A10',
+    fontStyle: 'bold',
+    align: 'center',
+    stroke: '#0A1022',           // <-- stroke oscuro para contrastar sobre ribbon dorado
+    strokeThickness: 3
+  }).setOrigin(0.5, 0.5);
+
+  // sube resolución para que el texto no se vea “soft”
+  this.tooltip.titleText.setResolution(2);
+  this.floatingPanel.add(this.tooltip.titleText);
+
+  // Body panel PNG
+  this.tooltip.bodyPanel = this.add.image(0, -10, 'worldmap_level_info_body').setOrigin(0.5);
+  this.floatingPanel.add(this.tooltip.bodyPanel);
+
+  // --- DESC: centrado real + wrap ---
+  this.tooltip.descText = this.add.text(0, -38, '', {
+    fontFamily: 'monospace',
+    fontSize: '12px',
+    color: '#FFFEF5',
+    align: 'center',
+    lineSpacing: 4,
+    wordWrap: { width: 190, useAdvancedWrap: true }, // <-- clave para que no se vea raro
+    stroke: '#0A1022',
+    strokeThickness: 2
+  }).setOrigin(0.5, 0.5);
+
+  this.tooltip.descText.setResolution(2);
+  this.floatingPanel.add(this.tooltip.descText);
+
+  // --- STATS: debajo, mismo origen para consistencia ---
+  this.tooltip.statsText = this.add.text(0, 6, '', {
+    fontFamily: 'monospace',
+    fontSize: '11px',
+    color: '#E8C85A',
+    align: 'center',
+    lineSpacing: 3,
+    wordWrap: { width: 200, useAdvancedWrap: true },
+    stroke: '#0A1022',
+    strokeThickness: 2
+  }).setOrigin(0.5, 0.5);
+
+  this.tooltip.statsText.setResolution(2);
+  this.floatingPanel.add(this.tooltip.statsText);
+
+  // --- PLAY BUTTON: súbelo para que NO tape la flecha del PNG ---
+  this.tooltip.playBtn = this.add.image(0, 60, 'worldmap_play_btn').setOrigin(0.5);
+  this.tooltip.playBtn.setInteractive({ useHandCursor: true });
+  this.floatingPanel.add(this.tooltip.playBtn);
+
+  // Interacción: pressed mientras mantienes click y start en pointerup (mejor UX)
+  this.tooltip.playBtn.on('pointerdown', () => {
+    this.tooltip.playBtn.setTexture('worldmap_play_btn_pressed');
+  });
+
+  this.tooltip.playBtn.on('pointerup', () => {
+    this.tooltip.playBtn.setTexture('worldmap_play_btn');
+    this.startSelectedLevel();
+  });
+
+  this.tooltip.playBtn.on('pointerout', () => {
+    this.tooltip.playBtn.setTexture('worldmap_play_btn');
+  });
+}
+
+Por qué esto mejora “lo que se siente mal”
+
+Stroke oscuro + setResolution(2) hace que el texto se vea más nítido y “game UI”, no web-font.
+
+wordWrap evita saltos raros y centra mejor.
+
+Mismo origin(0.5,0.5) en desc/stats evita que queden “descuadrados”.
+
+El botón ya no tapa la flecha del fondo.
+
+pointerup para iniciar nivel es más natural (y evita que se dispare mientras aún está “pressed”).
+
+Siguiente ajuste si aún lo sientes “muy web”
+
+El paso pro es cargar una fuente pixel (TTF/WOFF) en Phaser, pero primero prueba esto: suele ser suficiente.
+
+Si quieres, dime si tu tooltip llega a mostrar 2 líneas de descripción + stats. Con un ejemplo de texto real, ajusto los y (-38, 6, 60) para que quede perfecto.

@@ -1,0 +1,66 @@
+Ya entendí perfecto: el “espacio vacío” que ves ahora no es del diseño, es de cómo estás escalando el canvas. La imagen que quieres replicar (la de nubes) se ve “llena” porque el layout ocupa casi todo el viewport; en tu Replit se está quedando más pequeño, dejando “letterbox” (margen oscuro alrededor).
+
+En tu código el culpable suele ser esto (muy común): estás “snappeando” el scale a 0.25 con floor, y en un monitor 1920×1080 tu escala real debería ser ~0.94, pero floor la baja a 0.75, dejando muchísimo borde vacío.
+
+✅ Arreglo 1 (imprescindible): deja de usar floor para el scale
+
+Si tienes algo como:
+
+const s = Math.floor(raw * 4) / 4;
+
+
+cámbialo por round (o directamente sin snapping).
+
+Opción recomendada (se ve grande y sigue nítido)
+const raw = Math.min((vw - pad*2)/W, (vh - pad*2)/H);
+const scale = Math.round(raw * 100) / 100; // 0.01 pasos (no te lo baja brutal)
+
+O si quieres mantener “pasos” pero sin destruir el tamaño
+const raw = Math.min((vw - pad*2)/W, (vh - pad*2)/H);
+const scale = Math.round(raw * 20) / 20; // pasos 0.05 (mucho mejor que 0.25)
+
+
+NO uses floor. Usa round o ningún snapping.
+
+✅ Arreglo 2: quita padding de seguridad si ya no se corta
+
+Si ahora el frame es <img> 1:1 y ya no se corta, baja el pad:
+
+const pad = 0; // o 2
+
+✅ Arreglo 3 (opcional): modo “FULL BLEED” como la imagen (sin vacío)
+
+Si quieres que no exista margen oscuro nunca, puedes usar “cover” (llenar pantalla y recortar un poquito si hace falta):
+
+const raw = Math.max(vw / W, vh / H); // COVER
+const scale = Math.round(raw * 100) / 100;
+
+
+✅ Cero márgenes
+⚠️ Puede recortar 1–3% de bordes en pantallas raras (es normal)
+
+✅ Weekly Top 10 vacío (como tú quieres)
+
+Perfecto: mantén el panel pero sin lista.
+
+Si tienes lb-content con rows: ocúltalo:
+
+.lb-content { display:none !important; }
+
+
+o directamente no renderices ese bloque.
+
+Mejor aún: usa tu PNG vacío como panel:
+panel_top10_empty.png
+
+Resumen de lo que haría yo ahora
+
+Cambiar floor → round en el scale (esto solo ya te va a “llenar” muchísimo más la pantalla).
+
+Poner pad = 0.
+
+Si quieres “igualito a la imagen llena”: usar cover (Math.max) en vez de min.
+
+Mantener leaderboard vacío (tu preferencia).
+
+Si me pegas aquí tu función actual de resize()/scale (10–20 líneas), te digo exactamente qué línea cambiar para que quede clavado como la referencia (sin margen vacío y sin cortes).

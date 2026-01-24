@@ -1,0 +1,141 @@
+✅ Plan de implementación (Phaser)
+Paso 1: Coloca los assets del loading nuevo
+
+En tu proyecto, pon en /assets/ui/ o donde cargas sprites:
+
+loading_bg.png (tu mock 2048×1152 o el fondo final)
+
+progress_bar_frame.png
+
+progress_bar_fill.png
+
+seal_512.png (opcional)
+
+(opcional) pattern.png si quieres tile de fondo
+
+Si tu canvas del juego NO es 2048×1152, no importa: lo escalamos centrado.
+
+Paso 2: Edita tu escena de carga (BootScene / PreloadScene)
+
+En Phaser, el loading normalmente vive en el preload() del Boot/Preload scene. Lo que haremos:
+
+dibujar el background
+
+dibujar la barra frame
+
+dibujar la fill con “crop” según progreso
+
+actualizar en this.load.on('progress')
+
+Ejemplo (Phaser 3) listo para pegar
+export default class BootScene extends Phaser.Scene {
+  constructor() {
+    super("BootScene");
+  }
+
+  preload() {
+    // 1) Carga solo lo mínimo para el loading UI
+    this.load.image("loading_bg", "assets/ui/loading_bg.png");
+    this.load.image("bar_frame", "assets/ui/progress_bar_frame.png");
+    this.load.image("bar_fill", "assets/ui/progress_bar_fill.png");
+    this.load.image("seal", "assets/ui/seal_512.png"); // opcional
+
+    // Cuando termine de cargar lo mínimo, arrancamos el loader real
+    this.load.once("complete", () => this.startRealPreload());
+  }
+
+  create() {
+    // Nada aquí: esperamos al complete del preload mínimo
+  }
+
+  startRealPreload() {
+    const { width, height } = this.scale;
+
+    // --- Fondo ---
+    const bg = this.add.image(width / 2, height / 2, "loading_bg");
+    bg.setOrigin(0.5);
+
+    // Escala tipo "contain" para que siempre se vea completo
+    const scale = Math.min(width / bg.width, height / bg.height);
+    bg.setScale(scale);
+
+    // --- Sello opcional ---
+    // const seal = this.add.image(width * 0.75, height * 0.55, "seal").setScale(scale * 0.35);
+
+    // --- Barra ---
+    const barY = height * 0.78;
+    const barFrame = this.add.image(width / 2, barY, "bar_frame");
+    barFrame.setOrigin(0.5);
+
+    // Ajusta la barra al mismo scale del fondo
+    barFrame.setScale(scale);
+
+    const barFill = this.add.image(barFrame.x, barFrame.y, "bar_fill");
+    barFill.setOrigin(0.5);
+    barFill.setScale(scale);
+
+    // Crop inicial: 0%
+    const fullW = barFill.width;
+    const fullH = barFill.height;
+    barFill.setCrop(0, 0, 0, fullH);
+
+    // Texto “LOADING…” (si tu BG ya lo tiene, omite esto)
+    const loadingText = this.add.text(width / 2, barY - 60 * scale, "LOADING...", {
+      fontFamily: "monospace",
+      fontSize: `${Math.round(32 * scale)}px`,
+      color: "#ffd76a",
+    }).setOrigin(0.5);
+
+    // 2) Ahora carga el resto del juego (assets reales)
+    // EJEMPLO:
+    this.load.image("someSprite", "assets/someSprite.png");
+    // ... tu lista completa
+
+    // 3) Progreso real
+    this.load.on("progress", (p) => {
+      const cropW = Math.floor(fullW * p);
+      barFill.setCrop(0, 0, cropW, fullH);
+      // opcional: loadingText.setText(`LOADING... ${Math.round(p*100)}%`);
+    });
+
+    // 4) Termina y cambia de scene
+    this.load.once("complete", () => {
+      this.load.off("progress");
+      this.scene.start("MenuScene"); // o la que sigue
+    });
+
+    this.load.start();
+  }
+}
+
+Paso 3: Quitar el loading viejo
+
+Ese loading viejo probablemente está en tu BootScene actual con:
+
+texto “CASTLE CLASH DUEL”
+
+barra simple
+
+👉 Lo eliminas y reemplazas por el bloque de arriba.
+
+Paso 4: Cambiar textos a ONEBATTLELEGEND
+
+Si tu loading_bg.png ya tiene el título (ideal), listo.
+Si no, puedes pintar el texto encima con this.add.text (pero el look pixel te va a variar).
+
+Nota importante
+
+No metas el loading nuevo dentro de React si el juego es Phaser.
+Porque Phaser ya tiene su loader y es el que sabe el progreso real.
+
+Para hacerlo perfecto
+
+Dime solo esto (sin preguntas extra):
+
+¿Tu juego corre en Phaser 3 dentro de React?
+
+¿Cuál es el nombre real de tu escena de carga? (BootScene, PreloadScene, etc.)
+
+¿Resolución del canvas del juego? (ej 1280×720)
+
+Con eso te adapto el snippet a tu repo exacto (nombres de escenas, rutas, y el scaling correcto).

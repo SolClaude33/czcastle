@@ -1,0 +1,77 @@
+Perfecto, entonces estás a 2 pasos de que funcione 100% (y sin 404):
+
+Paso 1: crea la carpeta correcta y mueve/copias los assets
+
+En Replit:
+
+Crea esta carpeta:
+
+client/public/assets/ui/
+
+
+Copia ahí (o mueve) tus archivos desde attached_assets/ y renómbralos EXACTO así:
+
+client/public/assets/ui/loading_bg.png
+client/public/assets/ui/progress_bar_frame.png
+client/public/assets/ui/progress_bar_fill.png
+
+
+Ojo: tus nombres actuales tienen sufijos tipo loading_mock_2048x1152_*.png. Renómbralos a los nombres exactos de arriba, porque el código los busca tal cual.
+
+Con eso, en navegador deben abrir:
+
+/assets/ui/loading_bg.png
+
+/assets/ui/progress_bar_frame.png
+
+/assets/ui/progress_bar_fill.png
+
+Paso 2: en BootScene usa rutas absolutas (para evitar bugs)
+
+Como game.html se sirve en /game.html, lo más seguro es usar rutas absolutas (con / delante). Cambia en el loader:
+
+this.load.image('obl_loading_bg', '/assets/ui/loading_bg.png');
+this.load.image('obl_bar_frame', '/assets/ui/progress_bar_frame.png');
+this.load.image('obl_bar_fill', '/assets/ui/progress_bar_fill.png');
+
+
+✅ Esto evita errores típicos cuando el browser resuelve rutas relativas desde /game.html.
+
+BootScene FINAL (solo cambia las 3 líneas de rutas)
+
+En el BootScene que te pasé, reemplaza estas líneas:
+
+this.load.image('obl_loading_bg', 'assets/ui/loading_bg.png');
+this.load.image('obl_bar_frame', 'assets/ui/progress_bar_frame.png');
+this.load.image('obl_bar_fill', 'assets/ui/progress_bar_fill.png');
+
+
+por estas:
+
+this.load.image('obl_loading_bg', '/assets/ui/loading_bg.png');
+this.load.image('obl_bar_frame', '/assets/ui/progress_bar_frame.png');
+this.load.image('obl_bar_fill', '/assets/ui/progress_bar_fill.png');
+
+Checklist rápido de verificación (1 minuto)
+
+Abre en el navegador:
+
+https://TU-REPLIT-DOMAIN/assets/ui/loading_bg.png
+
+https://TU-REPLIT-DOMAIN/assets/ui/progress_bar_frame.png
+
+https://TU-REPLIT-DOMAIN/assets/ui/progress_bar_fill.png
+
+Si alguna no abre → es ruta/nombre.
+
+Abre https://TU-REPLIT-DOMAIN/game.html
+y revisa consola: si hay 404, te dirá cuál archivo falta.
+
+Detalle extra (te ahorra dolores)
+
+Como estás en pixel art, asegúrate de tener en config:
+
+render: { pixelArt: true, antialias: false }
+
+
+y listo.

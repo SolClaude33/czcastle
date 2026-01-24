@@ -1,0 +1,71 @@
+Perfecto — ya con el title panel funcionando, el siguiente paso es integrar los otros 2 de forma igual de “segura” (cambio mínimo, sin tocar lógica de mapa).
+
+Veo que esos dos assets corresponden a:
+
+worldmap_hint_panel.png (barra inferior larga)
+
+worldmap_level_info_bg.png (fondo del tooltip con flecha)
+
+Para no “malinterpretar” nada, aquí tienes el prompt listo para Replit para integrarlos correctamente.
+
+✅ Prompt Replit (integrar hint panel + tooltip bg sin romper nada)
+Quiero integrar 2 assets nuevos en WorldMapScene (Phaser 3) sin cambiar la lógica del mapa (castillos, caminos, árboles, selección de niveles, etc).
+
+Assets nuevos (ya están en client/public/assets/ui/ y se sirven como /assets/ui/...):
+- worldmap_hint_panel.png  (840x48, PNG transparente)
+- worldmap_level_info_bg.png (250x200 aprox, PNG transparente, con flecha abajo)
+
+Objetivo:
+1) Reemplazar SOLO el panel inferior actual (hint bar) generado por código por la imagen worldmap_hint_panel.png, manteniendo el texto encima (editable).
+   - Posición exacta: X=480, Y=510
+   - Tamaño visual: 840x48
+   - Sin escala adicional (scale=1)
+   - Depth: por encima del fondo pero por debajo del tooltip (ej: 1000)
+   - Texto encima con depth +1 (1001)
+
+2) Reemplazar SOLO la capa base del tooltip (createLevelTooltip) por worldmap_level_info_bg.png, SIN cambiar el contenido lógico del tooltip (título/desc/stats) ni el botón play actual.
+   - El tooltip debe seguir apareciendo al lado del nivel seleccionado, como ahora.
+   - Solo cambia el “panel base” (background/frame) por el PNG.
+   - Mantén las posiciones relativas internas: header/text/desc/play button deben seguir donde están, solo que ahora encima del nuevo bg.
+   - Ajusta el size/layout solo si el nuevo bg requiere unos pocos px (mínimo).
+
+Cambios técnicos requeridos:
+A) En BootScene (o preload global de UI), agregar:
+   this.load.image('worldmap_hint_panel', '/assets/ui/worldmap_hint_panel.png');
+   this.load.image('worldmap_level_info_bg', '/assets/ui/worldmap_level_info_bg.png');
+
+B) En WorldMapScene:
+   - En el bloque del panel inferior (hint):
+     1) eliminar/comentar el panel generado por código
+     2) reemplazarlo por:
+        const hintBg = this.add.image(480, 510, 'worldmap_hint_panel').setOrigin(0.5);
+        hintBg.setDepth(1000);
+        const hintText = this.add.text(480, 510, 'Click level to select  |  Press PLAY to start', {...})
+          .setOrigin(0.5)
+          .setDepth(1001);
+
+   - En createLevelTooltip:
+     1) reemplaza el background actual (paper/nineslice) por:
+        const bg = this.add.image(0, 0, 'worldmap_level_info_bg').setOrigin(0.5);
+        container.add(bg);
+     2) asegura que header/text/desc/play button queden por encima del bg (depth o add order).
+     3) no cambies la lógica de selección ni handlers del botón play.
+
+Restricciones:
+- NO mover castillos/caminos/árboles
+- NO cambiar el fondo del mapa (ya lo probamos aparte)
+- NO cambiar la lógica de niveles
+- Solo reemplazar UI visual y mantener textos encima.
+
+Entrega:
+Devuélveme el diff exacto de los cambios en BootScene y WorldMapScene, sin refactor grande.
+
+Tip rápido (para que no se vea borroso)
+
+Si notas blur en los PNG:
+
+asegúrate que el juego tenga render.pixelArt=true y antialias=false
+
+y en WorldMapScene:
+
+this.cameras.main.setRoundPixels(true);

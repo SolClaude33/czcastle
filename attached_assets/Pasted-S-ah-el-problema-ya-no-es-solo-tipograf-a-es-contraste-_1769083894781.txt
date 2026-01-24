@@ -1,0 +1,107 @@
+Sí, ahí el problema ya no es “solo tipografía”: es contraste + tamaño + zona segura del ribbon.
+
+El ribbon dorado que tienes tiene:
+
+textura clara + sombras
+
+y tu texto está quedando oscuro sobre oscuro, con stroke que se mezcla
+
+además es demasiado largo para ese ancho útil, por eso “choca” y parece que desaparece.
+
+Vamos a arreglarlo de forma robusta:
+
+✅ Objetivo
+
+Más pequeño para que encaje sí o sí
+
+Color que se vea siempre sobre oro (blanco/crema con outline oscuro)
+
+Zona segura (máximo ancho) + truncado
+
+Typo corregido: Siege
+
+1) Cambia el texto del header a formato corto
+
+En vez de "Level 3: Castle Siege" usa esto:
+
+LEVEL 3 (línea 1)
+
+CASTLE SIEGE (línea 2)
+
+Esto resuelve el choque 100%.
+
+2) Reemplaza tu titleText por DOS textos (mejor control)
+
+Pega este bloque tal cual donde hoy creas titleText (y elimina el anterior):
+
+// Header title split in 2 lines to avoid border collision
+this.tooltip.titleTop = this.add.text(0, -80, '', {
+  fontFamily: 'monospace',
+  fontSize: '12px',
+  fontStyle: 'bold',
+  color: '#FFF3C6',          // crema claro (se ve sobre oro)
+  align: 'center',
+  stroke: '#06102A',         // contorno azul oscuro
+  strokeThickness: 4
+}).setOrigin(0.5, 0.5);
+
+this.tooltip.titleTop.setResolution(2);
+this.tooltip.titleTop.setShadow(0, 1, '#06102A', 0, false, true);
+this.floatingPanel.add(this.tooltip.titleTop);
+
+this.tooltip.titleBottom = this.add.text(0, -64, '', {
+  fontFamily: 'monospace',
+  fontSize: '13px',
+  fontStyle: 'bold',
+  color: '#FFFFFF',          // blanco puro para máxima legibilidad
+  align: 'center',
+  stroke: '#06102A',
+  strokeThickness: 5
+}).setOrigin(0.5, 0.5);
+
+this.tooltip.titleBottom.setResolution(2);
+this.tooltip.titleBottom.setShadow(0, 1, '#06102A', 0, false, true);
+this.floatingPanel.add(this.tooltip.titleBottom);
+
+3) Cuando actualices el tooltip (al seleccionar nivel), setea así
+
+En el lugar donde hoy haces this.tooltip.titleText.setText(...), reemplázalo por:
+
+const levelNum = selectedLevelNumber; // el que ya tengas
+const levelName = (selectedLevelName || '').toUpperCase().replace('SIEGUE', 'SIEGE');
+
+// línea 1 corta
+this.tooltip.titleTop.setText(`LEVEL ${levelNum}`);
+
+// línea 2 con límite de ancho (evita choque)
+const MAX = 14; // prueba 12–16
+const nameShort = levelName.length > MAX ? levelName.slice(0, MAX - 1) + '…' : levelName;
+this.tooltip.titleBottom.setText(nameShort);
+
+
+MAX = 14 suele encajar perfecto en ribbons pequeños.
+
+4) Si aún “no se ve” (caso raro)
+
+Entonces el problema es layering (z-order). Fuerza depth dentro del container:
+
+this.tooltip.headerRibbon.setDepth(0);
+this.tooltip.titleTop.setDepth(1);
+this.tooltip.titleBottom.setDepth(1);
+
+
+O, si usas container.add(), el orden también manda: ribbon primero, textos después (como te lo di).
+
+Resultado esperado
+
+El título se ve clarísimo (blanco/crema + contorno oscuro)
+
+No choca con bordes porque está en 2 líneas
+
+Nunca desaparece por contraste
+
+Siege queda bien escrito
+
+Se siente “UI de juego” de verdad
+
+Si me pegas el bloque exacto donde actualizas el tooltip al seleccionar el nivel (el handler del click en castillo), te lo ajusto 1:1 para tu código real sin suposiciones de variables (selectedLevelNumber, etc.).

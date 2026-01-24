@@ -1,0 +1,182 @@
+Sí, se puede hacer real y además te conviene porque tu diseño actual ya está montado como “canvas + capas”. La forma correcta es:
+
+Fondo = una imagen (tu starfield nuevo, el que sí te gusta).
+
+Marcos/UI = capas encima (frame + panels + tabs + tablas), reusando lo que ya tienes.
+
+Datos = código real (leaderboard global + fees + rewards + dividendos).
+
+Te dejo un plan directo y práctico (sin humo) para implementarlo en Replit.
+
+1) Qué reutilizas de lo que ya tienes
+
+De tu sistema actual OneBattleLegend puedes reutilizar:
+
+frame.png (marco externo chino 2048×1152)
+
+componentes “canvas scaling” ya hecho (2048×1152)
+
+panel_top10_empty.png o panel estilo trofeos
+
+botones (btn_play, btn_weekly) como base de estilo
+
+iconos (trophy, wallet, chest, crown, etc. si los tienes)
+
+Lo nuevo que necesitas:
+
+un fondo nuevo: tu starfield (la segunda imagen).
+
+panels internos para dashboard (pueden ser un solo PNG “panel frame” o CSS con bordes).
+
+2) Cómo armarlo “real” (UI en React, fondo imagen)
+Estructura recomendada
+
+Dashboard.tsx = pantalla Hall of Fame + Treasury
+
+data viene de tu backend (Postgres/Express) o placeholders por ahora
+
+Capas (orden)
+
+Background (starfield.png) — full canvas
+
+Outer frame (frame.png) — full canvas (encima del fondo)
+
+Dashboard panels — divs con fondo semi-transparente y borde dorado (o PNG frames)
+
+Text/values — HTML real (para EN/中文 fácil)
+
+Esto te permite:
+
+cambiar el fondo cuando quieras
+
+mantener marcos “perfectos”
+
+texto traducible en código sin rehacer imágenes
+
+3) Assets: qué archivos crear/usar
+
+Colócalos en client/public/img/:
+
+dashboard_bg.png (tu starfield)
+
+frame.png (marco dorado chino)
+
+(opcional) panel_frame.png (si quieres frames internos como PNG)
+
+iconos: ico_trophy.png, ico_wallet.png, ico_gift.png, ico_crown.png (o usa SVG/emoji por ahora)
+
+Si no tienes frames internos PNG, puedes hacerlo con CSS y queda bien.
+
+4) Implementación rápida (CSS + layout)
+Dashboard base (React)
+export default function Dashboard() {
+  return (
+    <div className="viewport">
+      <div id="canvas" className="canvas">
+        <img className="layer bg" src="/img/dashboard_bg.png" alt="" />
+        <img className="layer frame" src="/img/frame.png" alt="" />
+
+        <div className="dash">
+          <header className="dashTop">
+            <div className="title">
+              <div className="h1">HALL OF FAME</div>
+              <div className="h2">封神榜 · Global</div>
+            </div>
+            <div className="lang">EN / 中文</div>
+          </header>
+
+          <section className="grid">
+            <div className="panel leaderboard">
+              <div className="panelTitle">Global Top 10</div>
+              {/* tabla real */}
+            </div>
+
+            <div className="panel treasury">
+              <div className="panelTitle">Treasury</div>
+              <div className="cards">
+                <div className="card">Fees Received</div>
+                <div className="card">Rewards Paid</div>
+                <div className="card">Dividends (Auto)</div>
+              </div>
+
+              <div className="taxFlow">
+                <div className="taxBadge">Tax 3%</div>
+                <div className="bar">
+                  <div className="seg players">Players 40%</div>
+                  <div className="seg divs">Dividends 30%</div>
+                  <div className="seg liq">Liquidity 30%</div>
+                </div>
+                <div className="note">Players rewards pool = 40% of the 3% tax</div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+CSS (lo importante)
+.viewport{position:fixed; inset:0; background:#050816; overflow:hidden;}
+.canvas{position:absolute; left:50%; top:50%; width:2048px; height:1152px; transform:translate(-50%,-50%); image-rendering:pixelated;}
+.layer{position:absolute; inset:0; width:100%; height:100%; image-rendering:pixelated;}
+.bg{object-fit:cover;}  /* fondo */
+.frame{object-fit:cover; pointer-events:none;} /* marco */
+
+.dash{position:absolute; inset:120px 120px 120px 120px; color:#f6e4b8;}
+.panel{
+  background: rgba(10,16,34,0.78);
+  border: 2px solid rgba(212,168,83,0.85);
+  box-shadow: inset 0 0 0 2px rgba(0,0,0,0.35);
+  border-radius: 10px;
+  padding: 16px;
+}
+.grid{display:grid; grid-template-columns: 1.35fr 1fr; gap:16px;}
+.cards{display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;}
+.card{background: rgba(0,0,0,0.25); border:1px solid rgba(212,168,83,0.35); padding:10px; border-radius:10px;}
+.taxBadge{display:inline-block; padding:6px 10px; background:#7a1f1f; border:1px solid rgba(212,168,83,0.8); border-radius:8px;}
+.bar{display:flex; margin-top:10px; border:1px solid rgba(212,168,83,0.35); border-radius:8px; overflow:hidden;}
+.seg{flex:1; padding:10px; text-align:center;}
+.players{background:rgba(212,168,83,0.35);}
+.divs{background:rgba(120,120,120,0.25);}
+.liq{background:rgba(80,120,180,0.25);}
+
+
+Esto ya se verá muy parecido al mock: fondo starfield + marcos + panels tipo “fantasy UI”.
+
+5) Hacerlo “funcional” de verdad (datos reales)
+
+Tus tres bloques clave de data:
+
+Global Hall of Fame: top 10 por score global
+
+Fees received (wallet): total acumulado (de tu tracker)
+
+Rewards paid + dividends: totales y log
+
+Backend mínimo (si ya tienes Express)
+
+GET /api/leaderboard/global?limit=10
+
+GET /api/treasury/summary → { feesReceived, rewardsPaid, dividendsPaid }
+
+GET /api/treasury/activity?limit=20
+
+GET /api/rewards/log?limit=20
+
+Luego en React haces fetch y render.
+
+6) El tema EN/中文 sin rehacer imágenes
+
+Como aquí el texto es HTML, cambias idioma con un diccionario:
+
+const t = lang === "zh" ? zh : en;
+
+
+y listo. No hay que regenerar assets.
+
+7) Tu petición específica
+
+“En la imagen no me gusta el fondo, pero sí los marcos. Para el fondo usamos esto y los marcos encima.”
+
+✅ Justo así está planteado: dashboard_bg.png debajo + frame.png encima + paneles semi transparentes.

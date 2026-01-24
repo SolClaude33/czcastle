@@ -1,0 +1,53 @@
+Sí: lo que “se siente mal” ahí casi siempre viene de 2 cosas (y en tu screenshot se nota ambas):
+
+El texto está usando un font “genérico” + antialias / escalado FIT ⇒ se ve suave/blurry y no “pixel-art”.
+
+Todavía se está dibujando el triangulito/pointer viejo (o algún elemento legacy) y además tu play button está tapando la flecha del PNG del tooltip (la flecha real está en worldmap_level_info_bg.png, abajo).
+
+Abajo te dejo un prompt listo para Replit para corregirlo sin cambiar tu lógica (solo UI).
+
+Quiero corregir el look del tooltip del WorldMapScene (Phaser 3.70, client/public/game.html).
+
+Problema actual:
+- El texto del tooltip se ve “off” (font + blur/antialias) y no parece pixel-art.
+- Se ve un triángulo/pointer viejo arriba, pero mi tooltip PNG ya tiene flecha integrada abajo (worldmap_level_info_bg.png).
+- El botón Play tapa la flecha del tooltip BG.
+
+Requisitos:
+1) NO dibujar ningún triángulo/pointer con Graphics/Triangle. El pointer debe ser SOLO el del PNG worldmap_level_info_bg.png.
+   -> Elimina o comenta cualquier this.add.triangle / graphics.fillTriangle / pointerGraphic del tooltip.
+
+2) Hacer que el texto se vea pixel-crisp:
+   - En el config del Phaser Game agrega render settings:
+     render: { antialias: false, pixelArt: true, roundPixels: true }
+     (si ya existe render, mergea esas props)
+   - En game.html agrega CSS para el canvas:
+     canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+
+3) En createLevelTooltip (WorldMapScene), ajustar tipografía y layout:
+   - Mantener posiciones base de los assets:
+     BG: worldmap_level_info_bg (250x200)
+     Header: worldmap_level_info_header (228x36)
+     Body: worldmap_level_info_body (222x100)
+     Buttons: worldmap_play_btn / worldmap_play_btn_pressed (68x68)
+   - Texto del header centrado dentro del ribbon, con stroke oscuro + sombra suave para legibilidad.
+   - Texto del body centrado dentro del panel body, con wordWrap a (222 - 24) y lineSpacing 4.
+   - Forzar crisp: text.setResolution(2) (header y body).
+
+4) Evitar que el botón tape la flecha:
+   - Baja un poco el botón (y) o sube el bg (y) para que la flecha del BG quede visible.
+   - Meta: que la punta de la flecha se vea claramente debajo del botón.
+
+Importante:
+- NO cambies la lógica de “start level” del botón play, solo reemplaza/ajusta la UI.
+- Devuélveme el bloque de código final actualizado para:
+  a) Phaser config (render + CSS del canvas)
+  b) createLevelTooltip completo (con los ajustes) y menciona exactamente qué líneas eliminar del pointer viejo.
+
+Qué debes ver después del cambio
+
+El tooltip ya no tiene el triángulo arriba (porque se eliminó el legacy pointer).
+
+El texto se ve más “pixel” (stroke + shadow + resolution + pixelArt/antialias off).
+
+La flecha del tooltip se alcanza a ver (botón no la tapa).

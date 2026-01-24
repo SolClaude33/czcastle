@@ -1,0 +1,260 @@
+Perfecto, con ese BootScene completo ya puedo devolverte la versión final lista para pegar en game.html, respetando:
+
+Phaser 3.70.0
+
+Canvas 960×540
+
+Flujo real BootScene → MenuScene
+
+ASSET_BASE = 'assets/tinyswords/' (se mantiene tal cual)
+
+Nuevos assets del loading en assets/ui/
+
+Progreso real con this.load.on('progress') + crop sobre progress_bar_fill.png
+
+Sin memory leaks (remueve listeners)
+
+PixelArt (sin antialias)
+
+1) Cambia el config del juego (muy recomendado)
+
+En tu config, agrega render.pixelArt y antialias:false:
+
+const config = {
+  type: Phaser.AUTO,
+  width: 960,
+  height: 540,
+  parent: 'game-container',
+  backgroundColor: '#0a1022',
+  render: {
+    pixelArt: true,
+    antialias: false
+  },
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH
+  },
+  // ...
+};
+
+2) Assets del loading (rutas)
+
+Pon estos archivos en:
+
+assets/ui/loading_bg.png
+assets/ui/progress_bar_frame.png
+assets/ui/progress_bar_fill.png
+assets/ui/seal_512.png (opcional)
+
+3) Reemplaza tu BootScene por este (cópialo tal cual)
+
+✅ No he tocado tu lista de assets, solo cambié la UI de loading.
+
+class BootScene extends Phaser.Scene {
+  constructor() {
+    super('BootScene');
+
+    // refs internas
+    this._loadingUI = null;
+    this._progressHandler = null;
+    this._completeHandler = null;
+    this._lastProgress = 0;
+  }
+
+  preload() {
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+
+    // Fondo oscuro mientras aparecen los PNG del loading
+    this.cameras.main.setBackgroundColor('#0a1022');
+
+    // ========= (A) UI del LOADING (mínimo) =========
+    // Se cargan ANTES que todo para poder mostrarlas durante el preload
+    this.load.image('obl_loading_bg', 'assets/ui/loading_bg.png');
+    this.load.image('obl_bar_frame', 'assets/ui/progress_bar_frame.png');
+    this.load.image('obl_bar_fill', 'assets/ui/progress_bar_fill.png');
+    // opcional:
+    // this.load.image('obl_seal', 'assets/ui/seal_512.png');
+
+    // Creamos la UI apenas estén los 3 assets clave del loading
+    const uiFlags = { bg: false, frame: false, fill: false };
+    const tryBuildUI = () => {
+      if (this._loadingUI) return; // ya creada
+      if (!uiFlags.bg || !uiFlags.frame || !uiFlags.fill) return;
+
+      // --- BACKGROUND (contain en 960x540) ---
+      const bg = this.add.image(width / 2, height / 2, 'obl_loading_bg').setOrigin(0.5);
+      const s = Math.min(width / bg.width, height / bg.height);
+      bg.setScale(s);
+
+      // --- PROGRESS BAR (centrada abajo) ---
+      const barY = height * 0.82;
+
+      const barFrame = this.add.image(width / 2, barY, 'obl_bar_frame').setOrigin(0.5);
+      barFrame.setScale(s);
+
+      const barFill = this.add.image(width / 2, barY, 'obl_bar_fill').setOrigin(0.5);
+      barFill.setScale(s);
+
+      // Crop en espacio de textura (antes de escala)
+      const fullW = barFill.width;
+      const fullH = barFill.height;
+      barFill.setCrop(0, 0, 0, fullH);
+
+      // Texto opcional (si el bg ya trae LOADING, comenta esto)
+      const loadingText = this.add.text(width / 2, barY - 40 * s, 'LOADING...', {
+        fontFamily: 'monospace',
+        fontSize: `${Math.round(18 * s)}px`,
+        color: '#ffd76a'
+      }).setOrigin(0.5);
+
+      // Guarda refs
+      this._loadingUI = { bg, barFrame, barFill, loadingText, fullW, fullH };
+
+      // Aplica el progreso actual por si ya avanzó antes de crear la UI
+      const cropW = Math.floor(fullW * this._lastProgress);
+      barFill.setCrop(0, 0, cropW, fullH);
+    };
+
+    // File-complete listeners (solo para construir UI del loading)
+    this.load.on('filecomplete-image-obl_loading_bg', () => { uiFlags.bg = true; tryBuildUI(); });
+    this.load.on('filecomplete-image-obl_bar_frame',  () => { uiFlags.frame = true; tryBuildUI(); });
+    this.load.on('filecomplete-image-obl_bar_fill',   () => { uiFlags.fill = true; tryBuildUI(); });
+
+    // ========= (B) Progreso REAL (para TODA la carga) =========
+    this._progressHandler = (value) => {
+      this._lastProgress = value;
+      if (!this._loadingUI) return;
+
+      const { barFill, fullW, fullH } = this._loadingUI;
+      const cropW = Math.floor(fullW * value);
+      barFill.setCrop(0, 0, cropW, fullH);
+    };
+
+    this._completeHandler = () => {
+      // Limpia listeners para evitar leaks
+      this.load.off('progress', this._progressHandler);
+      this.load.off('complete', this._completeHandler);
+
+      // (Opcional) también puedes remover los filecomplete si quieres
+      // this.load.off('filecomplete-image-obl_loading_bg');
+      // ...
+
+      // Destruye UI del loading antes de pasar a MenuScene
+      if (this._loadingUI) {
+        this._loadingUI.loadingText?.destroy();
+        this._loadingUI.barFill?.destroy();
+        this._loadingUI.barFrame?.destroy();
+        this._loadingUI.bg?.destroy();
+        this._loadingUI = null;
+      }
+    };
+
+    this.load.on('progress', this._progressHandler);
+    this.load.once('complete', this._completeHandler);
+
+    // ========= (C) TU LISTA DE ASSETS (la dejas igual) =========
+    this.load.image('tilemap-color1', ASSET_BASE + 'Terrain/Tileset/Tilemap_color1.png');
+    this.load.image('tilemap-color2', ASSET_BASE + 'Terrain/Tileset/Tilemap_color2.png');
+    this.load.image('castle-blue', ASSET_BASE + 'Buildings/Blue Buildings/Castle.png');
+    this.load.image('castle-red', ASSET_BASE + 'Buildings/Red Buildings/Castle.png');
+
+    this.load.spritesheet('warrior-blue-idle', ASSET_BASE + 'Units/Blue Units/Warrior/Warrior_Idle.png', { frameWidth: 192, frameHeight: 192 });
+    this.load.spritesheet('warrior-blue-run', ASSET_BASE + 'Units/Blue Units/Warrior/Warrior_Run.png', { frameWidth: 192, frameHeight: 192 });
+    this.load.spritesheet('warrior-blue-attack', ASSET_BASE + 'Units/Blue Units/Warrior/Warrior_Attack1.png', { frameWidth: 192, frameHeight: 192 });
+    this.load.spritesheet('warrior-red-idle', ASSET_BASE + 'Units/Red Units/Warrior/Warrior_Idle.png', { frameWidth: 192, frameHeight: 192 });
+    this.load.spritesheet('warrior-red-run', ASSET_BASE + 'Units/Red Units/Warrior/Warrior_Run.png', { frameWidth: 192, frameHeight: 192 });
+    this.load.spritesheet('warrior-red-attack', ASSET_BASE + 'Units/Red Units/Warrior/Warrior_Attack1.png', { frameWidth: 192, frameHeight: 192 });
+
+    this.load.spritesheet('archer-blue-idle', ASSET_BASE + 'Units/Blue Units/Archer/Archer_Idle.png', { frameWidth: 192, frameHeight: 192 });
+    this.load.spritesheet('archer-blue-run', ASSET_BASE + 'Units/Blue Units/Archer/Archer_Run.png', { frameWidth: 192, frameHeight: 192 });
+    this.load.spritesheet('archer-blue-shoot', ASSET_BASE + 'Units/Blue Units/Archer/Archer_Shoot.png', { frameWidth: 192, frameHeight: 192 });
+    this.load.spritesheet('archer-red-idle', ASSET_BASE + 'Units/Red Units/Archer/Archer_Idle.png', { frameWidth: 192, frameHeight: 192 });
+    this.load.spritesheet('archer-red-run', ASSET_BASE + 'Units/Red Units/Archer/Archer_Run.png', { frameWidth: 192, frameHeight: 192 });
+    this.load.spritesheet('archer-red-shoot', ASSET_BASE + 'Units/Red Units/Archer/Archer_Shoot.png', { frameWidth: 192, frameHeight: 192 });
+
+    this.load.image('arrow-blue', ASSET_BASE + 'Units/Blue Units/Archer/Arrow.png');
+    this.load.image('arrow-red', ASSET_BASE + 'Units/Red Units/Archer/Arrow.png');
+
+    this.load.spritesheet('dust-01', ASSET_BASE + 'Particle FX/Dust_01.png', { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('explosion-01', ASSET_BASE + 'Particle FX/Explosion_01.png', { frameWidth: 192, frameHeight: 192 });
+
+    this.load.image('cursor-01', ASSET_BASE + 'UI Elements/UI Elements/Cursors/Cursor_01.png');
+    this.load.image('btn-blue-regular', ASSET_BASE + 'UI Elements/UI Elements/Buttons/BigBlueButton_Regular.png');
+    this.load.image('btn-blue-pressed', ASSET_BASE + 'UI Elements/UI Elements/Buttons/BigBlueButton_Pressed.png');
+    this.load.image('btn-red-regular', ASSET_BASE + 'UI Elements/UI Elements/Buttons/BigRedButton_Regular.png');
+    this.load.image('bar-base', ASSET_BASE + 'UI Elements/UI Elements/Bars/BigBar_Base.png');
+    this.load.image('bar-fill', ASSET_BASE + 'UI Elements/UI Elements/Bars/BigBar_Fill.png');
+    this.load.image('btn-small-square-blue', ASSET_BASE + 'UI Elements/UI Elements/Buttons/SmallBlueSquareButton_Regular.png');
+    this.load.image('btn-small-square-blue-pressed', ASSET_BASE + 'UI Elements/UI Elements/Buttons/SmallBlueSquareButton_Pressed.png');
+    this.load.spritesheet('ui-paper-regular', ASSET_BASE + 'UI Elements/UI Elements/Papers/RegularPaper.png', { frameWidth: 106, frameHeight: 106 });
+    this.load.spritesheet('ui-paper-special', ASSET_BASE + 'UI Elements/UI Elements/Papers/SpecialPaper.png', { frameWidth: 106, frameHeight: 106 });
+    this.load.spritesheet('ui-wood-table', ASSET_BASE + 'UI Elements/UI Elements/Wood Table/WoodTable.png', { frameWidth: 144, frameHeight: 144, spacing: 8 });
+    this.load.image('banner', ASSET_BASE + 'UI Elements/UI Elements/Banners/Banner.png');
+    this.load.image('ribbons-small', ASSET_BASE + 'UI Elements/UI Elements/Ribbons/SmallRibbons.png');
+    this.load.image('swords', ASSET_BASE + 'UI Elements/UI Elements/Swords/Swords.png');
+    this.load.image('btn-small-round-blue', ASSET_BASE + 'UI Elements/UI Elements/Buttons/SmallBlueRoundButton_Regular.png');
+    this.load.image('btn-small-round-blue-pressed', ASSET_BASE + 'UI Elements/UI Elements/Buttons/SmallBlueRoundButton_Pressed.png');
+    this.load.image('ui-icon-01', ASSET_BASE + 'UI Elements/UI Elements/Icons/Icon_01.png');
+    this.load.image('ui-icon-10', ASSET_BASE + 'UI Elements/UI Elements/Icons/Icon_10.png');
+    this.load.image('avatar-knight-blue', ASSET_BASE + 'UI Elements/UI Elements/Human Avatars/Avatars_03.png');
+
+    this.load.spritesheet('tree-1', ASSET_BASE + 'Terrain/Resources/Wood/Trees/Tree1.png', { frameWidth: 192, frameHeight: 256 });
+    this.load.spritesheet('tree-2', ASSET_BASE + 'Terrain/Resources/Wood/Trees/Tree2.png', { frameWidth: 192, frameHeight: 256 });
+    this.load.spritesheet('tree-3', ASSET_BASE + 'Terrain/Resources/Wood/Trees/Tree3.png', { frameWidth: 192, frameHeight: 192 });
+    this.load.spritesheet('tree-4', ASSET_BASE + 'Terrain/Resources/Wood/Trees/Tree4.png', { frameWidth: 192, frameHeight: 192 });
+
+    this.load.image('rock-1', ASSET_BASE + 'Terrain/Decorations/Rocks/Rock1.png');
+    this.load.image('rock-2', ASSET_BASE + 'Terrain/Decorations/Rocks/Rock2.png');
+    this.load.image('rock-3', ASSET_BASE + 'Terrain/Decorations/Rocks/Rock3.png');
+    this.load.image('rock-4', ASSET_BASE + 'Terrain/Decorations/Rocks/Rock4.png');
+
+    this.load.spritesheet('bush-1', ASSET_BASE + 'Terrain/Decorations/Bushes/Bushe1.png', { frameWidth: 128, frameHeight: 128 });
+    this.load.spritesheet('bush-2', ASSET_BASE + 'Terrain/Decorations/Bushes/Bushe2.png', { frameWidth: 128, frameHeight: 128 });
+  }
+
+  create() {
+    this.createAnimations();
+    this.scene.start('MenuScene'); // flujo real
+  }
+
+  createAnimations() {
+    ['blue', 'red'].forEach(team => {
+      this.anims.create({ key: `warrior-${team}-idle`, frames: this.anims.generateFrameNumbers(`warrior-${team}-idle`, { start: 0, end: 5 }), frameRate: 8, repeat: -1 });
+      this.anims.create({ key: `warrior-${team}-run`, frames: this.anims.generateFrameNumbers(`warrior-${team}-run`, { start: 0, end: 5 }), frameRate: 10, repeat: -1 });
+      this.anims.create({ key: `warrior-${team}-attack`, frames: this.anims.generateFrameNumbers(`warrior-${team}-attack`, { start: 0, end: 3 }), frameRate: 12, repeat: 0 });
+    });
+    ['blue', 'red'].forEach(team => {
+      this.anims.create({ key: `archer-${team}-idle`, frames: this.anims.generateFrameNumbers(`archer-${team}-idle`, { start: 0, end: 5 }), frameRate: 8, repeat: -1 });
+      this.anims.create({ key: `archer-${team}-run`, frames: this.anims.generateFrameNumbers(`archer-${team}-run`, { start: 0, end: 3 }), frameRate: 10, repeat: -1 });
+      this.anims.create({ key: `archer-${team}-shoot`, frames: this.anims.generateFrameNumbers(`archer-${team}-shoot`, { start: 0, end: 7 }), frameRate: 12, repeat: 0 });
+    });
+    this.anims.create({ key: 'dust-puff', frames: this.anims.generateFrameNumbers('dust-01', { start: 0, end: 7 }), frameRate: 16, hideOnComplete: true });
+    this.anims.create({ key: 'explosion', frames: this.anims.generateFrameNumbers('explosion-01', { start: 0, end: 7 }), frameRate: 16, hideOnComplete: true });
+    for (let i = 1; i <= 4; i++) {
+      this.anims.create({ key: `tree-${i}-sway`, frames: this.anims.generateFrameNumbers(`tree-${i}`, { start: 0, end: 7 }), frameRate: 5, repeat: -1 });
+    }
+    for (let i = 1; i <= 2; i++) {
+      this.anims.create({ key: `bush-${i}-sway`, frames: this.anims.generateFrameNumbers(`bush-${i}`, { start: 0, end: 7 }), frameRate: 5, repeat: -1 });
+    }
+  }
+}
+
+4) Si quieres que el loading se vea “un poquito” antes de cambiar a MenuScene
+
+A veces el preload va muy rápido y apenas se ve. Agrega un mínimo de tiempo:
+
+En create():
+
+this.createAnimations();
+this.time.delayedCall(650, () => this.scene.start('MenuScene'));
+
+Lo único que debes verificar
+
+Que assets/ui/loading_bg.png exista (y no dé 404).
+
+Que los nombres de archivos coincidan exactamente.
+
+Que no tengas CSP bloqueando imágenes (raro en Replit).
+
+Si me dices cómo estás sirviendo game.html (ruta), te digo dónde poner assets/ui/ para que la URL funcione siempre.

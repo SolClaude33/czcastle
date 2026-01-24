@@ -1,0 +1,41 @@
+Actúa como un desarrollador front-end senior. Crea una landing page funcional en Replit usando SOLO HTML + CSS + JS (sin frameworks). Debe replicar visualmente (pixel-perfect) el diseño de referencia reference.png (2048x1143). Usa un “design canvas” fijo de 2048x1143 y escálalo RESPONSIVE al tamaño de la ventana manteniendo la proporción exacta, centrado en pantalla.
+
+1) Estructura de archivos:
+- index.html
+- styles.css
+- main.js
+- /img/ con: frame.png, reference.png, hero.png (o hero_no_buttons.png), btn_play.png, btn_weekly.png, card_duel.png, card_defense.png, card_rankings.png, panel_top10.png, flow_icons.png
+
+2) Layout (MUY IMPORTANTE):
+- Crea un contenedor .viewport que centra todo.
+- Dentro, crea .canvas con size nativo 2048x1143 (position: relative).
+- Escala .canvas con transform: scale(s) calculado en JS: s = min(window.innerWidth/2048, window.innerHeight/1143). Usa transform-origin: top left.
+- Aplica image-rendering: pixelated (y crisp-edges) a la canvas y a todas las imágenes para mantener look pixel.
+
+3) Render:
+- Usa frame.png como background base de la canvas (background-image: url(img/frame.png); background-size: cover).
+- Encima coloca por capas (absolute positioning) los elementos: hero, botones, cards, leaderboard y flow.
+- Incluye un “debug overlay” con reference.png encima (opacity 0.25, pointer-events none) que se active/desactive con tecla “D” para alinear todo.
+
+4) Posicionamiento:
+- Define en CSS variables o constantes por elemento (left, top, width, height) en px dentro del canvas 2048x1143. Crea una sección clara en styles.css para editar posiciones.
+- Objetivo: que al activar el overlay reference.png, todos los elementos calcen exactamente encima. Si algún asset tiene bordes negros/extra, usa object-fit: contain y ajusta width/height.
+
+Capas sugeridas:
+- hero: usa hero.png como banner principal. Si usas hero_no_buttons.png, entonces coloca btn_play.png y btn_weekly.png encima en su lugar.
+- cards row: 3 cards (duel/defense/rankings) alineadas horizontalmente.
+- panel_top10.png en la derecha (leaderboard). Dentro agrega una lista HTML (ol/li) con datos dummy y estilo similar (color dorado, alineado a la izquierda). Debe ser reemplazable luego por datos reales.
+- flow_icons.png: fila inferior con los 4 iconos conectados. Debajo renderiza los labels en HTML: WEEKLY RESET, QUALIFIERS, PLAYOFFS, FINALS & REWARDS.
+
+5) Interactividad:
+- Botón PLAY NOW y card DUEL -> link /game (por ahora puede ser alert o placeholder).
+- Botón WEEKLY TOP 10 y panel -> /leaderboard (placeholder).
+- Card DEFENSE -> /game?mode=defense; card RANKINGS -> /rankings (placeholder).
+- Hover: agrega un glow suave o un outline dorado (sin blur exagerado) en botones y cards; cursor pointer; focus visible.
+
+6) Accesibilidad y calidad:
+- Usa <button> o <a> con aria-label.
+- Evita scroll (todo debe caber en la pantalla escalado).
+- Mantén el mismo aspecto visual que reference.png.
+
+Entrega el código completo de index.html, styles.css y main.js con comentarios claros, e incluye un modo debug (tecla D) para comparar con reference.png.

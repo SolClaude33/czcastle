@@ -1,0 +1,70 @@
+Perfecto — para probar ese worldmap_title_panel.png sin que Replit “se invente cosas”, la clave es pedirle un cambio mínimo y reversible:
+
+✅ Solo: preload + reemplazar el panel por imagen + mantener texto encima
+❌ No: reescribir WorldMapScene completo, no tocar castillos, no tocar caminos, no tocar tooltip
+
+Abajo tienes el prompt listo para Replit AI (Ghostwriter). Cópialo tal cual.
+
+✅ Prompt para Replit AI (prueba segura del title panel)
+Quiero probar un asset nuevo en WorldMapScene sin cambiar la lógica del mapa.
+
+Asset nuevo:
+- Archivo: client/public/assets/ui/worldmap_title_panel.png
+- Tamaño: 420x70 PNG con transparencia
+- Se sirve como: /assets/ui/worldmap_title_panel.png
+
+Objetivo:
+- Reemplazar SOLO el panel superior actual (“SELECT YOUR BATTLE”) por esta imagen PNG.
+- Mantener el texto “SELECT YOUR BATTLE” como texto Phaser encima del PNG (para que sea editable).
+- NO tocar fondo, castillos, árboles, caminos, círculos, tooltip ni botón play.
+
+Cambios requeridos (mínimos):
+1) En BootScene (o el preload global donde cargas UI), agregar:
+   this.load.image('worldmap_title_panel', '/assets/ui/worldmap_title_panel.png');
+
+2) En WorldMapScene, en el lugar exacto donde hoy se crea el panel superior (el que está en X=480, Y=40 y tamaño 420x70):
+   - Eliminar o comentar SOLO el panel generado por código (nine-slice / paper).
+   - Reemplazarlo por:
+     const titleBg = this.add.image(480, 40, 'worldmap_title_panel').setOrigin(0.5);
+     titleBg.setDepth(1000); // por encima del fondo
+
+   - Mantener el texto:
+     const titleText = this.add.text(480, 40, 'SELECT YOUR BATTLE', { ... })
+       .setOrigin(0.5)
+       .setDepth(1001);
+
+3) No mover coordenadas:
+   - X = 480
+   - Y = 40
+   - No escala adicional (si acaso, scale=1)
+   - No cambiar estilos del resto.
+
+Entregable:
+- Devuélveme el diff exacto (qué líneas cambiaste) y asegúrate de que el mapa sigue funcionando igual.
+
+Cómo probarlo tú (sin confiar ciegamente)
+
+Abre /assets/ui/worldmap_title_panel.png en el navegador (para verificar que carga).
+
+Entra a WorldMapScene y confirma:
+
+El panel aparece en el mismo lugar
+
+El texto encima está centrado
+
+Si el PNG se ve “chico/grande”, solo ajusta:
+
+titleBg.setScale(1.0) (ideal)
+
+o 1.02 / 0.98 máximo, para no perder pixel art.
+
+Tip extra (para que quede perfecto en pixel art)
+
+Si el panel se ve borroso, dile a Replit que aplique:
+
+titleBg.setScale(1);
+titleBg.setPipeline('TextureTintPipeline'); // opcional
+this.cameras.main.setRoundPixels(true);
+
+
+(esto último solo si ya usas pixelArt: true)

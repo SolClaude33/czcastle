@@ -1,0 +1,76 @@
+Sí, lo más incómodo ahí es el header “Level 3: Castle Siegue” porque está quedando como “texto plano encima de oro” y se ve sucio/borroso + además tienes el typo (Siegue).
+La solución buena es: convertir el header en “ribbon + texto centrado” con estilo pixel, y limitar el ancho para que no choque con los adornos.
+Aquí tienes el ajuste exacto (mínimo cambio) para que se vea pro.
+
+1) Corrige el typo
+En tu string:
+
+
+Castle Siegue → Castle Siege
+
+
+
+2) Cambia el estilo del titleText (header) a “pixel legible”
+Ahora mismo lo estás pintando con fill oscuro + stroke, pero en ese ribbon dorado necesitas:
+
+
+fill oscuro
+
+
+stroke MUY oscuro
+
+
+opcional una sombra mínima
+
+
+y sobre todo: no usar stroke dorado (ensucia el oro)
+
+
+Reemplaza SOLO tu titleText por esto:
+this.tooltip.titleText = this.add.text(0, -72, '', {
+  fontFamily: 'monospace',
+  fontSize: '14px',
+  fontStyle: 'bold',
+  color: '#2A1A10',        // marrón oscuro
+  align: 'center',
+  stroke: '#06102A',       // azul muy oscuro (mejor contraste)
+  strokeThickness: 4
+}).setOrigin(0.5, 0.5);
+
+this.tooltip.titleText.setResolution(2);
+this.tooltip.titleText.setShadow(0, 1, '#06102A', 0, false, true);
+
+
+3) Evita que el texto toque adornos: limita el ancho y “trim”
+Antes de setear el texto, haz esto:
+const title = `Level ${levelNumber}: ${levelName}`; // “Castle Siege”
+const MAX = 22; // ajusta 20–24 según te guste
+this.tooltip.titleText.setText(title.length > MAX ? title.slice(0, MAX - 1) + '…' : title);
+
+Esto hace que el título no invada los bordes del ribbon.
+
+4) Alinea perfecto el texto al ribbon
+Tu ribbon está en y=-72. Mantén el texto EXACTO ahí:
+this.tooltip.titleText.setPosition(0, -72);
+
+
+5) Si aún se ve “raro”: el verdadero fix pro (pixel font)
+El “monospace” es un parche. Lo profesional es cargar una fuente pixel (TTF/WOFF) y usarla en todos tus textos UI.
+Si quieres, te paso un mini setup para Phaser para cargar un font pixel (tipo “Press Start 2P” o similar) sin romper nada.
+
+Checklist rápido para que quede bien al instante
+
+
+ Cambiar “Siegue” → “Siege”
+
+
+ Stroke oscuro (#06102A), no dorado
+
+
+ setResolution(2)
+
+
+ Truncar a ~22 caracteres con …
+
+
+Si me pegas el bloque donde tú “actualizas” el tooltip al seleccionar el nivel (donde asignas titleText.setText(...)), te lo devuelvo ya editado exacto para que copie/pegue.

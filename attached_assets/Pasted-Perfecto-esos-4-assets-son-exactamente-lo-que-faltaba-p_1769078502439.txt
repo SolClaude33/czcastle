@@ -1,0 +1,72 @@
+Perfecto — esos 4 assets son exactamente lo que faltaba para dejar el tooltip del WorldMapScene 100% con la estética OneBattleLegend sin tocar lógica.
+
+Por lo que muestras, asumo que ya los subiste a:
+
+client/public/assets/ui/
+
+y que se sirven como:
+
+/assets/ui/<nombre>.png
+
+y que los nombres ya están correctos.
+
+A continuación tienes el prompt “seguro” para Replit AI para integrarlos sin que refactorice el mapa ni mueva castillos/caminos.
+
+✅ Prompt para Replit AI (integrar tooltip completo + play button normal/pressed)
+Quiero integrar nuevos assets UI en WorldMapScene (Phaser 3) sin cambiar la lógica del mapa. NO refactor grande.
+
+Contexto:
+- Canvas 960x540
+- Assets UI están en client/public/assets/ui/ y se sirven como /assets/ui/
+- No tocar castillos, árboles, rocas, caminos, círculos, selección de niveles ni flow del mapa.
+- Solo reemplazar el tooltip de nivel (createLevelTooltip) por nuevos PNGs.
+
+Assets nuevos (ya existen):
+1) worldmap_level_info_bg.png        (panel base 250x200 aprox, con marco dorado)
+2) worldmap_level_info_header.png    (ribbon header)
+3) worldmap_level_info_body.png      (panel interior/body)
+4) worldmap_play_btn.png             (botón play circular normal)
+5) worldmap_play_btn_pressed.png     (botón play circular pressed)
+
+Objetivo:
+A) Preload:
+- En BootScene (o el preload central donde cargas UI), agregar:
+  this.load.image('worldmap_level_info_bg', '/assets/ui/worldmap_level_info_bg.png');
+  this.load.image('worldmap_level_info_header', '/assets/ui/worldmap_level_info_header.png');
+  this.load.image('worldmap_level_info_body', '/assets/ui/worldmap_level_info_body.png');
+  this.load.image('worldmap_play_btn', '/assets/ui/worldmap_play_btn.png');
+  this.load.image('worldmap_play_btn_pressed', '/assets/ui/worldmap_play_btn_pressed.png');
+
+B) WorldMapScene:
+- En la función createLevelTooltip (líneas aprox 1557-1646), NO cambiar la lógica de qué nivel se selecciona ni cómo se inicia el nivel.
+- Reemplazar solo la UI dibujada por código (paper/nineslice/ribbon y botón circular actual) por un CONTAINER con estos elementos:
+  1) bg: worldmap_level_info_bg centrado (origin 0.5)
+  2) header ribbon: worldmap_level_info_header arriba dentro del panel
+     y texto del título encima (editable)
+  3) body: worldmap_level_info_body en el centro
+     y texto de descripción/stats encima (editable, wordWrap)
+  4) botón play: worldmap_play_btn abajo dentro del panel
+     - on pointerdown: cambiar textura a worldmap_play_btn_pressed
+     - on pointerup: volver a worldmap_play_btn y ejecutar la misma acción actual de “start level”
+     - on pointerout: volver a worldmap_play_btn
+  - Asegurar que el tooltip siga siendo flotante junto al nivel seleccionado (mismas coordenadas externas que ya tienes).
+  - Mantener layering correcto (tooltip encima de todo).
+
+C) Importante:
+- No añadir texto dentro de las imágenes, solo texto Phaser encima.
+- Mantener coordenadas relativas consistentes (mínimos ajustes si hace falta).
+- Mantener pixelArt: no blur.
+
+Entrega:
+- Devuélveme el diff exacto en BootScene y en createLevelTooltip.
+- No cambies nada más.
+
+Mini guía para que Replit no se confunda (si te pregunta)
+
+“El header ribbon va pegado arriba, centrado”.
+
+“El body panel va en el centro”.
+
+“El botón play va abajo centrado”.
+
+“El tooltip se sigue creando donde estaba: solo cambia el arte”.

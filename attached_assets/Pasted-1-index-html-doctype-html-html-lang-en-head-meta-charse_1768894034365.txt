@@ -1,0 +1,207 @@
+1) index.html
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ONEBATTLELEGEND</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="viewport">
+    <div id="canvas" class="canvas" role="application" aria-label="ONEBATTLELEGEND landing">
+
+      <!-- Base frame/background -->
+      <div class="frame"></div>
+
+      <!-- Hero (NO buttons baked in) -->
+      <img class="layer hero" src="img/hero.png" alt="Hero banner" draggable="false" />
+
+      <!-- Buttons (separados) -->
+      <a class="clickable btn btn-play" href="/game" aria-label="Play Now"></a>
+      <a class="clickable btn btn-weekly" href="/leaderboard" aria-label="Weekly Top 10"></a>
+
+      <!-- Cards -->
+      <a class="clickable card card-duel" href="/game?mode=duel" aria-label="Duel"></a>
+      <a class="clickable card card-defense" href="/game?mode=defense" aria-label="Defense"></a>
+      <a class="clickable card card-rankings" href="/rankings" aria-label="Rankings"></a>
+
+      <!-- Leaderboard panel (imagen) -->
+      <div class="leaderboard-wrap">
+        <img class="layer leaderboard" src="img/panel_top10.png" alt="Weekly Top 10 panel" draggable="false" />
+        <!-- Opcional: luego pones texto real aquí -->
+        <div class="lb-content" aria-hidden="true"></div>
+      </div>
+
+      <!-- Debug overlay: referencia (tecla D) -->
+      <img id="debugOverlay" class="debug" src="img/reference.png" alt="" draggable="false" />
+    </div>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>
+
+2) styles.css
+:root{
+  --W: 2048;
+  --H: 1143;
+}
+
+/* Fullscreen stage */
+html,body{height:100%;margin:0}
+body{background:#050816;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden}
+
+.viewport{
+  position:relative;
+  width:100vw;
+  height:100vh;
+  overflow:hidden;
+}
+
+/* Canvas fijo (se escala con JS) */
+.canvas{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:calc(var(--W) * 1px);
+  height:calc(var(--H) * 1px);
+  transform-origin: top left;
+  image-rendering: pixelated;
+}
+
+.layer, .debug{
+  position:absolute;
+  image-rendering: pixelated;
+  user-select:none;
+  -webkit-user-drag:none;
+}
+
+/* Base frame */
+.frame{
+  position:absolute;
+  inset:0;
+  background:url("img/frame.png") center/cover no-repeat;
+  image-rendering: pixelated;
+}
+
+/* ========= POSICIONES (PX) ========= */
+/* Hero sin botones */
+.hero{
+  left:51px; top:106px;
+  width:1945px; height:430px;
+}
+
+/* Botones */
+.btn{
+  position:absolute;
+  display:block;
+  background-repeat:no-repeat;
+  background-size:contain;
+  background-position:center;
+}
+.btn-play{
+  left:580px; top:375px;
+  width:466px; height:117px;
+  background-image:url("img/btn_play.png");
+}
+.btn-weekly{
+  left:1070px; top:388px;
+  width:376px; height:90px;
+  background-image:url("img/btn_weekly.png");
+}
+
+/* Cards */
+.card{
+  position:absolute;
+  display:block;
+  background-repeat:no-repeat;
+  background-size:cover;
+  background-position:center;
+}
+.card-duel{
+  left:88px; top:563px;
+  width:460px; height:312px;
+  background-image:url("img/card_duel.png");
+}
+.card-defense{
+  left:577px; top:562px;
+  width:460px; height:312px;
+  background-image:url("img/card_defense.png");
+}
+.card-rankings{
+  left:1077px; top:562px;
+  width:460px; height:312px;
+  background-image:url("img/card_rankings.png");
+}
+
+/* Leaderboard panel */
+.leaderboard-wrap{
+  position:absolute;
+  left:1577px; top:555px;
+  width:397px; height:520px;
+}
+.leaderboard{
+  left:0; top:0;
+  width:100%; height:100%;
+}
+.lb-content{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+}
+
+/* Hover/focus (no blur exagerado) */
+.clickable{
+  cursor:pointer;
+  border-radius:10px;
+  outline:0;
+}
+.clickable:hover{
+  outline:2px solid rgba(255,215,106,.55);
+}
+.clickable:focus-visible{
+  outline:3px solid rgba(255,215,106,.85);
+}
+
+/* Debug overlay */
+.debug{
+  left:0; top:0;
+  width:100%; height:100%;
+  opacity:0;
+  pointer-events:none;
+  mix-blend-mode:screen;
+}
+.debug.on{opacity:0.28}
+
+3) main.js
+const W = 2048;
+const H = 1143;
+
+const canvas = document.getElementById("canvas");
+const debug = document.getElementById("debugOverlay");
+
+function resize(){
+  const s = Math.min(window.innerWidth / W, window.innerHeight / H);
+  // centra y escala
+  canvas.style.transform = `translate(-50%, -50%) scale(${s})`;
+}
+window.addEventListener("resize", resize);
+resize();
+
+// Toggle debug overlay con tecla D
+window.addEventListener("keydown", (e) => {
+  if (e.key.toLowerCase() === "d") {
+    debug.classList.toggle("on");
+  }
+});
+
+Cómo alinear perfecto (rápido)
+
+Abre la página en Replit preview
+
+Presiona D para activar el overlay reference.png
+
+Si algo no calza, ajusta SOLO los valores left/top/width/height en styles.css
+
+Cuando esté perfecto, deja el overlay apagado (D).

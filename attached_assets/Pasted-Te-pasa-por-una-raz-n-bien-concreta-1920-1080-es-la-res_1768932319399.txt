@@ -1,0 +1,78 @@
+Te pasa por una razón bien concreta: “1920×1080” es la resolución de tu pantalla, no el tamaño real del viewport del navegador.
+En Replit Preview el viewport suele ser más “limpio” (o distinto), pero en una pestaña normal el navegador pierde altura por la barra de pestañas, URL, bookmarks, etc. Entonces tu viewport real puede ser algo como 1900×920 (varía). Si tú escalas el layout pensando en 1080px de alto o usas modo cover, se recorta (normalmente abajo o arriba).
+
+Cómo comprobarlo (rápido)
+
+En la pestaña “real” abre consola y mira:
+
+window.innerWidth, window.innerHeight, window.devicePixelRatio
+
+
+Vas a ver que no es 1920×1080.
+
+Solución (tienes que elegir 1 de estos comportamientos)
+Opción A — CERO recorte (recomendado si quieres ver TODO)
+
+Usa contain: escala con Math.min(...).
+Esto asegura que nunca se corta, pero puede quedar un pequeño margen si el viewport no coincide exacto con 16:9.
+
+const W = 2048, H = 1152;
+
+function layout() {
+  const vw = window.visualViewport?.width ?? window.innerWidth;
+  const vh = window.visualViewport?.height ?? window.innerHeight;
+
+  const scale = Math.min(vw / W, vh / H); // ✅ no crop
+  const left = Math.round((vw - W * scale) / 2);
+  const top  = Math.round((vh - H * scale) / 2);
+
+  const el = document.getElementById("canvas"); // tu contenedor/imagen root
+  el.style.transformOrigin = "top left";
+  el.style.transform = `translate3d(${left}px, ${top}px, 0) scale(${scale})`;
+}
+
+window.addEventListener("resize", layout);
+window.visualViewport?.addEventListener("resize", layout);
+layout();
+
+
+Tip importante: para que ese “margen” no se vea feo, pon el fondo del body igual al fondo del arte (azul oscuro) para que parezca parte del diseño.
+
+Opción B — Pantalla llena SIEMPRE (pero habrá recorte sí o sí)
+
+Esto es cover: Math.max(...). Si el viewport es más bajo que 16:9, inevitablemente corta.
+Lo que sí puedes controlar es dónde corta (por ejemplo, que corte arriba y no abajo).
+
+Cover con anclaje al fondo (para que no corte abajo):
+
+const W = 2048, H = 1152;
+
+function layout() {
+  const vw = window.visualViewport?.width ?? window.innerWidth;
+  const vh = window.visualViewport?.height ?? window.innerHeight;
+
+  const scale = Math.max(vw / W, vh / H); // ✅ full bleed, ❌ crop
+  const left = Math.round((vw - W * scale) / 2);
+
+  // ancla al fondo: muestra todo lo de abajo, corta arriba si hace falta
+  let top = Math.round(vh - H * scale);
+  if (top > 0) top = 0; // si sobra espacio, no bajes
+
+  const el = document.getElementById("canvas");
+  el.style.transformOrigin = "top left";
+  el.style.transform = `translate3d(${left}px, ${top}px, 0) scale(${scale})`;
+}
+
+window.addEventListener("resize", layout);
+window.visualViewport?.addEventListener("resize", layout);
+layout();
+
+Cosas que casi siempre causan “se ve bien en Replit pero mal afuera”
+
+Asegúrate de tener esto (sí o sí):
+
+html, body { margin: 0; height: 100%; overflow: hidden; }
+#viewport { position: fixed; inset: 0; overflow: hidden; }
+
+
+Y que tu elemento escalado (imagen/canvas/root) esté dentro de #viewport.
