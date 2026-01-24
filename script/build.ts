@@ -40,6 +40,13 @@ async function buildAll() {
   console.log("building client...");
   await viteBuild();
 
+  // Only bundle server for Node.js deployments (not Vercel)
+  // Vercel runs TypeScript directly from api/index.ts
+  if (process.env.VERCEL) {
+    console.log("Skipping server bundle (Vercel runs TypeScript directly)");
+    return;
+  }
+
   console.log("building server...");
   const pkg = JSON.parse(await readFile("package.json", "utf-8"));
   const allDeps = [
@@ -47,6 +54,14 @@ async function buildAll() {
     ...Object.keys(pkg.devDependencies || {}),
   ];
   const externals = allDeps.filter((dep) => !allowlist.includes(dep));
+
+  // Mark firebase-admin optional deps as external
+  const firebaseOptionalDeps = [
+    "@opentelemetry/api",
+    "@opentelemetry/instrumentation",
+    "@google-cloud/trace-agent",
+  ];
+  externals.push(...firebaseOptionalDeps);
 
   await esbuild({
     entryPoints: ["server/index.ts"],
