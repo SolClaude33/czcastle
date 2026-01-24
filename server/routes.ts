@@ -23,30 +23,45 @@ export function registerRoutes(app: Express): void {
   seedDatabase().catch(() => {});
 
   app.post("/api/auth/session", async (req, res) => {
-    const { idToken } = z
-      .object({ idToken: z.string().min(1) })
-      .parse(req.body);
+    try {
+      const { idToken } = z
+        .object({ idToken: z.string().min(1) })
+        .parse(req.body);
 
-    if (!isFirebaseConfigured()) {
-      return res
-        .status(500)
-        .json({ message: "Firebase Admin env vars not configured" });
+      if (!isFirebaseConfigured()) {
+        console.error("[POST /api/auth/session] Firebase not configured");
+        return res
+          .status(500)
+          .json({ message: "Firebase Admin env vars not configured" });
+      }
+
+      const expiresIn = 14 * 24 * 60 * 60 * 1000;
+      const sessionCookie = await getAdminAuth().createSessionCookie(idToken, {
+        expiresIn,
+      });
+
+      res.cookie("session", sessionCookie, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: expiresIn,
+      });
+
+      return res.status(204).end();
+    } catch (err) {
+      console.error("[POST /api/auth/session] Error:", err);
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid request", 
+          errors: err.errors 
+        });
+      }
+      return res.status(500).json({ 
+        message: "Failed to establish session", 
+        error: err instanceof Error ? err.message : String(err) 
+      });
     }
-
-    const expiresIn = 14 * 24 * 60 * 60 * 1000;
-    const sessionCookie = await getAdminAuth().createSessionCookie(idToken, {
-      expiresIn,
-    });
-
-    res.cookie("session", sessionCookie, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: expiresIn,
-    });
-
-    return res.status(204).end();
   });
 
   app.post("/api/auth/logout", async (_req, res) => {
@@ -55,82 +70,122 @@ export function registerRoutes(app: Express): void {
   });
 
   app.get("/api/auth/me", async (req, res) => {
-    const sessionCookie = (req as any).cookies?.session as string | undefined;
-    if (!sessionCookie)
-      return res.status(401).json({ message: "Not authenticated" });
-    if (!isFirebaseConfigured())
-      return res.status(500).json({ message: "Firebase not configured" });
-
     try {
-      const decoded = await getAdminAuth().verifySessionCookie(
-        sessionCookie,
-        true
-      );
-      const uid = decoded.uid;
+      const sessionCookie = (req as any).cookies?.session as string | undefined;
+      if (!sessionCookie) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      if (!isFirebaseConfigured()) {
+        console.error("[GET /api/auth/me] Firebase not configured");
+        return res.status(500).json({ message: "Firebase not configured" });
+      }
 
-      const [userDoc, authUser] = await Promise.all([
-        getAdminDb().collection("users").doc(uid).get(),
-        getAdminAuth().getUser(uid),
-      ]);
-      const data = userDoc.exists ? userDoc.data() : undefined;
+      try {
+        const decoded = await getAdminAuth().verifySessionCookie(
+          sessionCookie,
+          true
+        );
+        const uid = decoded.uid;
 
-      return res.json({
-        uid,
-        twitterUsername: data?.twitterUsername ?? null,
-        wallet: data?.wallet ?? null,
-        highScore:
-          typeof (data as any)?.highScore === "number"
-            ? (data as any).highScore
-            : null,
-        photoURL: authUser?.photoURL ?? null,
+        const [userDoc, authUser] = await Promise.all([
+          getAdminDb().collection("users").doc(uid).get(),
+          getAdminAuth().getUser(uid),
+        ]);
+        const data = userDoc.exists ? userDoc.data() : undefined;
+
+        return res.json({
+          uid,
+          twitterUsername: data?.twitterUsername ?? null,
+          wallet: data?.wallet ?? null,
+          highScore:
+            typeof (data as any)?.highScore === "number"
+              ? (data as any).highScore
+              : null,
+          photoURL: authUser?.photoURL ?? null,
+        });
+      } catch (authError) {
+        console.error("[GET /api/auth/me] Auth error:", authError);
+        return res.status(401).json({ message: "Invalid session" });
+      }
+    } catch (err) {
+      console.error("[GET /api/auth/me] Unexpected error:", err);
+      return res.status(500).json({ 
+        message: "Internal server error", 
+        error: err instanceof Error ? err.message : String(err) 
       });
-    } catch {
-      return res.status(401).json({ message: "Invalid session" });
     }
   });
 
   app.post("/api/users/wallet", async (req, res) => {
-    const sessionCookie = (req as any).cookies?.session as string | undefined;
-    if (!sessionCookie)
-      return res.status(401).json({ message: "Not authenticated" });
-    if (!isFirebaseConfigured())
-      return res.status(500).json({ message: "Firebase not configured" });
-
-    const { wallet, twitterUsername, twitterId } = z
-      .object({
-        wallet: z.string().min(1),
-        twitterUsername: z.string().min(1).optional(),
-        twitterId: z.string().min(1).optional(),
-      })
-      .parse(req.body);
-
     try {
-      const decoded = await getAdminAuth().verifySessionCookie(
-        sessionCookie,
-        true
-      );
-      const uid = decoded.uid;
+      const sessionCookie = (req as any).cookies?.session as string | undefined;
+      if (!sessionCookie) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      if (!isFirebaseConfigured()) {
+        console.error("[POST /api/users/wallet] Firebase not configured");
+        return res.status(500).json({ message: "Firebase not configured" });
+      }
 
-      const userRef = getAdminDb().collection("users").doc(uid);
-      await userRef.set(
-        {
-          ...(twitterUsername ? { twitterUsername } : {}),
-          ...(twitterId ? { twitterId } : {}),
-          wallet,
-          updatedAt: new Date(),
-        },
-        { merge: true }
-      );
+      const { wallet, twitterUsername, twitterId } = z
+        .object({
+          wallet: z.string().min(1),
+          twitterUsername: z.string().min(1).optional(),
+          twitterId: z.string().min(1).optional(),
+        })
+        .parse(req.body);
 
-      return res.status(204).end();
-    } catch {
-      return res.status(401).json({ message: "Invalid session" });
+      try {
+        const decoded = await getAdminAuth().verifySessionCookie(
+          sessionCookie,
+          true
+        );
+        const uid = decoded.uid;
+
+        const userRef = getAdminDb().collection("users").doc(uid);
+        await userRef.set(
+          {
+            ...(twitterUsername ? { twitterUsername } : {}),
+            ...(twitterId ? { twitterId } : {}),
+            wallet,
+            updatedAt: new Date(),
+          },
+          { merge: true }
+        );
+
+        return res.status(204).end();
+      } catch (authError) {
+        console.error("[POST /api/users/wallet] Auth error:", authError);
+        return res.status(401).json({ message: "Invalid session" });
+      }
+    } catch (err) {
+      console.error("[POST /api/users/wallet] Error:", err);
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid request", 
+          errors: err.errors 
+        });
+      }
+      return res.status(500).json({ 
+        message: "Internal server error", 
+        error: err instanceof Error ? err.message : String(err) 
+      });
     }
   });
 
   app.get(api.scores.list.path, async (req, res) => {
-    const scores = await storage.getScores();
-    res.json(scores);
+    try {
+      const scores = await storage.getScores();
+      res.json(scores);
+    } catch (err) {
+      console.error("[GET /api/scores] Error:", err);
+      res.status(500).json({ 
+        message: "Failed to fetch scores", 
+        error: err instanceof Error ? err.message : String(err) 
+      });
+    }
   });
 
   app.post(api.scores.create.path, async (req, res) => {
