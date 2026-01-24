@@ -1,5 +1,5 @@
 import { createServer } from "http";
-import { app, log } from "./app";
+import { app, log } from "./app.js";
 
 const httpServer = createServer(app);
 
@@ -7,7 +7,7 @@ const httpServer = createServer(app);
   if (process.env.VERCEL) return;
 
   if (process.env.NODE_ENV !== "production") {
-    const { setupVite } = await import("./vite");
+    const { setupVite } = await import("./vite.js");
     await setupVite(httpServer, app);
   }
 

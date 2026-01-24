@@ -1,2 +1,2 @@
-export { storage, FirebaseStorage as DatabaseStorage } from "./storage-firebase";
-export type { IStorage } from "./storage-firebase";
+export { storage, FirebaseStorage as DatabaseStorage } from "./storage-firebase.js";
+export type { IStorage } from "./storage-firebase.js";

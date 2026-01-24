@@ -1,4 +1,4 @@
-import { getAdminDb } from "./firebase";
+import { getAdminDb } from "./firebase.js";
 import admin from "firebase-admin";
 import {
   Score,

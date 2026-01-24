@@ -1,12 +1,12 @@
 import type { Express } from "express";
-import { storage } from "./storage";
+import { storage } from "./storage.js";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import {
   getAdminAuth,
   getAdminDb,
   isFirebaseConfigured,
-} from "./firebase";
+} from "./firebase.js";
 
 async function seedDatabase() {
   if (process.env.NODE_ENV === "production") return;
