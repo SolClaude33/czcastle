@@ -68,7 +68,10 @@ export function registerRoutes(app: Express): void {
       );
       const uid = decoded.uid;
 
-      const userDoc = await getAdminDb().collection("users").doc(uid).get();
+      const [userDoc, authUser] = await Promise.all([
+        getAdminDb().collection("users").doc(uid).get(),
+        getAdminAuth().getUser(uid),
+      ]);
       const data = userDoc.exists ? userDoc.data() : undefined;
 
       return res.json({
@@ -79,6 +82,7 @@ export function registerRoutes(app: Express): void {
           typeof (data as any)?.highScore === "number"
             ? (data as any).highScore
             : null,
+        photoURL: authUser?.photoURL ?? null,
       });
     } catch {
       return res.status(401).json({ message: "Invalid session" });
@@ -133,6 +137,7 @@ export function registerRoutes(app: Express): void {
     try {
       const input = api.scores.create.input.parse(req.body);
       let boundInput = input;
+      let authenticatedUid: string | undefined;
       const sessionCookie = (req as any).cookies?.session as string | undefined;
       if (sessionCookie) {
         try {
@@ -140,17 +145,17 @@ export function registerRoutes(app: Express): void {
             sessionCookie,
             true
           );
-          const uid = decoded.uid;
+          authenticatedUid = decoded.uid;
           const userDoc = await getAdminDb()
             .collection("users")
-            .doc(uid)
+            .doc(authenticatedUid)
             .get();
           const twitterUsername = userDoc.exists
             ? (userDoc.data() as any)?.twitterUsername
             : undefined;
           boundInput = {
             ...input,
-            userId: uid,
+            userId: authenticatedUid,
             username:
               twitterUsername || input.username || "anonymous",
           };
@@ -160,6 +165,19 @@ export function registerRoutes(app: Express): void {
       }
 
       const score = await storage.createScore(boundInput);
+      
+      // Si hay sesión y el score es mayor al highScore del usuario, actualizarlo
+      if (authenticatedUid && boundInput.userId === authenticatedUid) {
+        try {
+          const user = await storage.getUser(authenticatedUid);
+          if (user && (user.highScore == null || score.score > (user.highScore ?? 0))) {
+            await storage.updateUser(authenticatedUid, { highScore: score.score });
+          }
+        } catch {
+          // ignore
+        }
+      }
+      
       res.status(201).json(score);
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -170,5 +188,10 @@ export function registerRoutes(app: Express): void {
       }
       throw err;
     }
+  });
+
+  app.get("/api/users", async (req, res) => {
+    const users = await storage.getAllUsers();
+    res.json(users);
   });
 }

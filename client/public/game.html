@@ -25,9 +25,54 @@
       image-rendering: pixelated;
       image-rendering: crisp-edges;
     }
+    #user-bar {
+      position: fixed;
+      top: 0;
+      right: 0;
+      z-index: 9999;
+      padding: 8px 12px;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      font-family: system-ui, sans-serif;
+      font-size: 12px;
+      color: rgba(255,255,255,0.9);
+      background: rgba(20,25,45,0.9);
+      border-bottom-left-radius: 8px;
+      border-left: 1px solid rgba(255,255,255,0.1);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    #user-bar .user-bar-avatar {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid rgba(255,255,255,0.2);
+      flex-shrink: 0;
+    }
+    #user-bar .user-bar-fallback {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    #user-bar .user-bar-block {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      text-align: left;
+    }
+    #user-bar .user-bar-block .wallet { font-family: monospace; color: rgba(255,255,255,0.6); font-size: 11px; }
+    #user-bar .user-bar-block .score { color: #F6E27F; font-size: 11px; }
   </style>
 </head>
 <body>
+  <div id="user-bar" aria-hidden="true"></div>
   <div id="game-container"></div>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
   <script>
@@ -4405,6 +4450,26 @@
 
     // === START ===
     window.game = new Phaser.Game(config);
+
+    // Barra de usuario: foto Twitter a la izquierda, bloque con @username, wallet y puntuacion
+    (function() {
+      var el = document.getElementById('user-bar');
+      if (!el) return;
+      fetch('/api/auth/me', { credentials: 'include' })
+        .then(function(r) { return r.ok ? r.json() : null; })
+        .then(function(me) {
+          if (!me || (!me.twitterUsername && !me.wallet)) return;
+          var wallet = me.wallet;
+          var walletShort = (wallet && wallet.length >= 10) ? wallet.slice(0,6) + '…' + wallet.slice(-4) : (wallet || '—');
+          var name = (me.twitterUsername || 'user');
+          var initial = name.charAt(0).toUpperCase();
+          var photo = me.photoURL ? ('<img class="user-bar-avatar" src="' + me.photoURL.replace(/"/g, '&quot;') + '" alt="" />') : ('<div class="user-bar-fallback">' + initial + '</div>');
+          var block = '<div class="user-bar-block"><span>@' + name + '</span><span class="wallet">' + walletShort + '</span><span class="score">&#127942; ' + (me.highScore || 0).toLocaleString() + '</span></div>';
+          el.innerHTML = photo + block;
+          el.style.display = 'flex';
+        })
+        .catch(function() {});
+    })();
   </script>
 </body>
 </html>

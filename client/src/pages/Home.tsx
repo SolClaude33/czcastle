@@ -1,5 +1,6 @@
 import { useLayoutEffect, useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
+import { HomeLeaderboard } from "@/components/HomeLeaderboard";
 
 const W = 2048;
 const H = 1152;
@@ -328,8 +329,22 @@ export default function Home() {
               top: 0,
               width: "100%",
               height: "100%",
+              zIndex: 1,
             }}
           />
+          <div
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              width: "100%",
+              height: "100%",
+              zIndex: 2,
+              pointerEvents: "none",
+            }}
+          >
+            <HomeLeaderboard maxItems={10} />
+          </div>
         </div>
 
         {/* Flow bar */}

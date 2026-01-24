@@ -12,6 +12,7 @@ export interface IStorage {
   getScores(): Promise<Score[]>;
   createScore(score: InsertScore): Promise<Score>;
   getUser(userId: string): Promise<User | null>;
+  getAllUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(userId: string, updates: UpdateUser): Promise<User>;
   getUserByTwitterId(twitterId: string): Promise<User | null>;
@@ -133,6 +134,25 @@ export class FirebaseStorage implements IStorage {
       createdAt: data.createdAt?.toDate() || new Date(),
       updatedAt: data.updatedAt?.toDate() || new Date(),
     };
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    const db = getAdminDb();
+    const usersSnapshot = await db.collection("users").get();
+
+    return usersSnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        twitterUsername: data.twitterUsername,
+        twitterId: data.twitterId,
+        wallet: data.wallet,
+        highScore:
+          typeof data.highScore === "number" ? data.highScore : undefined,
+        createdAt: data.createdAt?.toDate() || new Date(),
+        updatedAt: data.updatedAt?.toDate() || new Date(),
+      };
+    });
   }
 
   async getUserByTwitterId(twitterId: string): Promise<User | null> {

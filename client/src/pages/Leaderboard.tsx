@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useScores } from "@/hooks/use-scores";
+import { useUsers } from "@/hooks/use-users";
 import { useLanguage } from "@/context/LanguageContext";
 import { Search, RefreshCw, Loader2 } from "lucide-react";
 import { Link } from "wouter";
@@ -7,17 +7,23 @@ import { Link } from "wouter";
 import seal_512 from "@assets/seal_512.png";
 
 export default function Leaderboard() {
-  const { data: scores, isLoading, refetch } = useScores();
+  const { data: users, isLoading, refetch } = useUsers();
   const { language, setLanguage, t } = useLanguage();
   const [activeTab, setActiveTab] = useState<"global" | "weekly" | "latest">("global");
   const [searchQuery, setSearchQuery] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
 
-  const sortedScores = scores ? [...scores].sort((a, b) => b.score - a.score).slice(0, 10) : [];
-  const filteredScores = searchQuery 
-    ? sortedScores.filter(s => s.username.toLowerCase().includes(searchQuery.toLowerCase()))
-    : sortedScores;
+  // Ordenar usuarios por highScore (mayor a menor), filtrar los que no tienen highScore o es 0
+  const sortedUsers = users
+    ? [...users]
+        .filter((u) => u.highScore != null && u.highScore > 0)
+        .sort((a, b) => (b.highScore ?? 0) - (a.highScore ?? 0))
+    : [];
+  
+  const filteredUsers = searchQuery 
+    ? sortedUsers.filter(u => u.twitterUsername?.toLowerCase().includes(searchQuery.toLowerCase()))
+    : sortedUsers;
 
   useEffect(() => {
     const handleResize = () => {
@@ -192,12 +198,12 @@ export default function Leaderboard() {
                     <div className="flex items-center justify-center py-12">
                       <Loader2 className="w-12 h-12 animate-spin text-[#d4a853]" />
                     </div>
-                  ) : filteredScores.length === 0 ? (
+                  ) : filteredUsers.length === 0 ? (
                     <div className="text-center py-12 text-xl text-[#7a6a5a]">{t("no_data")}</div>
                   ) : (
-                    filteredScores.map((score, index) => (
+                    filteredUsers.map((user, index) => (
                       <div 
-                        key={score.id}
+                        key={user.id}
                         data-testid={`row-player-${index + 1}`}
                         className={`flex items-center gap-5 px-5 py-4 rounded-xl transition-all ${
                           index < 3 
@@ -212,8 +218,8 @@ export default function Leaderboard() {
                             <span className="text-2xl font-bold text-[#5a4a3a]">{index + 1}</span>
                           )}
                         </div>
-                        <span className="flex-1 text-xl text-[#2a1810]" data-testid={`text-username-${index + 1}`}>{score.username}</span>
-                        <span className="text-xl text-[#8B4513] font-bold" data-testid={`text-score-${index + 1}`}>{formatNumber(score.score)} {t("gold")}</span>
+                        <span className="flex-1 text-xl text-[#2a1810]" data-testid={`text-username-${index + 1}`}>@{user.twitterUsername}</span>
+                        <span className="text-xl text-[#8B4513] font-bold" data-testid={`text-score-${index + 1}`}>{formatNumber(user.highScore ?? 0)} {t("gold")}</span>
                       </div>
                     ))
                   )}
