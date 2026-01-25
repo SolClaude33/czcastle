@@ -1,4 +1,4 @@
-import { useLayoutEffect, useState, useEffect } from "react";
+import { useLayoutEffect, useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { HomeLeaderboard } from "@/components/HomeLeaderboard";
 
@@ -7,7 +7,6 @@ const H = 1152;
 
 export default function Home() {
   const [canvasStyle, setCanvasStyle] = useState<React.CSSProperties>({});
-  const [showDebug, setShowDebug] = useState(false);
   const { language, setLanguage, t } = useLanguage();
 
   useLayoutEffect(() => {
@@ -40,16 +39,6 @@ export default function Home() {
       window.removeEventListener("resize", onResize);
       window.visualViewport?.removeEventListener("resize", onResize);
     };
-  }, []);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === "d") {
-        setShowDebug((prev) => !prev);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   const layerStyle: React.CSSProperties = {
@@ -418,39 +407,6 @@ export default function Home() {
           {language === "zh" ? "赚" : "EARN"}
         </span>
 
-        {/* Debug overlay */}
-        <img
-          id="debugOverlay"
-          src="/img/reference.png"
-          alt=""
-          draggable={false}
-          style={{
-            ...layerStyle,
-            left: 0,
-            top: 0,
-            width: 2048,
-            height: 1152,
-            opacity: showDebug ? 0.28 : 0,
-            pointerEvents: "none",
-            mixBlendMode: "screen",
-          }}
-        />
-
-        {/* Debug hint */}
-        <div
-          data-testid="text-debug-hint"
-          style={{
-            position: "absolute",
-            bottom: 10,
-            right: 10,
-            color: "rgba(255,255,255,0.3)",
-            fontSize: 14,
-            fontFamily: "monospace",
-            pointerEvents: "none",
-          }}
-        >
-          {t("debug_hint")}
-        </div>
       </div>
     </div>
   );

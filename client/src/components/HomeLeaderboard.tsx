@@ -30,6 +30,7 @@ export function HomeLeaderboard({ maxItems = 10 }: HomeLeaderboardProps) {
           justifyContent: "center",
           color: "rgba(255, 255, 255, 0.6)",
           fontSize: "12px",
+          fontFamily: "'Press Start 2P', monospace",
         }}
       >
         <Loader2 className="w-4 h-4 animate-spin" />
@@ -51,6 +52,7 @@ export function HomeLeaderboard({ maxItems = 10 }: HomeLeaderboardProps) {
           justifyContent: "center",
           color: "rgba(255, 255, 255, 0.4)",
           fontSize: "12px",
+          fontFamily: "'Press Start 2P', monospace",
           padding: "20px",
           textAlign: "center",
         }}
@@ -68,10 +70,10 @@ export function HomeLeaderboard({ maxItems = 10 }: HomeLeaderboardProps) {
         top: 0,
         width: "100%",
         height: "100%",
-        padding: "235px 30px 30px 30px",
+        padding: "205px 30px 30px 30px",
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
+        gap: "10px",
         overflow: "hidden",
       }}
     >
@@ -79,7 +81,8 @@ export function HomeLeaderboard({ maxItems = 10 }: HomeLeaderboardProps) {
         const rank = index + 1;
         const isTopThree = rank <= 3;
         const username = user.twitterUsername || "user";
-        
+        const pixelFont = { fontFamily: "'Press Start 2P', monospace" };
+
         return (
           <div
             key={user.id}
@@ -88,23 +91,16 @@ export function HomeLeaderboard({ maxItems = 10 }: HomeLeaderboardProps) {
               alignItems: "center",
               justifyContent: "space-between",
               padding: "6px 12px",
-              borderRadius: "4px",
-              backgroundColor: isTopThree
-                ? "rgba(255, 215, 106, 0.15)"
-                : "rgba(255, 255, 255, 0.05)",
-              border: isTopThree
-                ? "1px solid rgba(255, 215, 106, 0.3)"
-                : "1px solid rgba(255, 255, 255, 0.1)",
-              transition: "all 0.2s ease",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
               <span
                 style={{
-                  fontSize: "14px",
+                  ...pixelFont,
+                  fontSize: "16px",
                   fontWeight: "bold",
                   color: isTopThree ? "#FFD76A" : "rgba(255, 255, 255, 0.7)",
-                  minWidth: "24px",
+                  minWidth: "28px",
                   textAlign: "right",
                 }}
               >
@@ -112,13 +108,14 @@ export function HomeLeaderboard({ maxItems = 10 }: HomeLeaderboardProps) {
               </span>
               <span
                 style={{
-                  fontSize: "13px",
+                  ...pixelFont,
+                  fontSize: "14px",
                   color: isTopThree ? "#FFFFFF" : "rgba(255, 255, 255, 0.8)",
                   fontWeight: isTopThree ? "bold" : "normal",
                   textOverflow: "ellipsis",
                   overflow: "hidden",
                   whiteSpace: "nowrap",
-                  maxWidth: "180px",
+                  maxWidth: "200px",
                 }}
                 title={username}
               >
@@ -127,10 +124,10 @@ export function HomeLeaderboard({ maxItems = 10 }: HomeLeaderboardProps) {
             </div>
             <span
               style={{
-                fontSize: "13px",
+                ...pixelFont,
+                fontSize: "14px",
                 fontWeight: "bold",
                 color: isTopThree ? "#FFD76A" : "rgba(255, 255, 255, 0.7)",
-                fontFamily: "monospace",
               }}
             >
               {(user.highScore ?? 0).toLocaleString()}

@@ -114,7 +114,7 @@ export default function Leaderboard() {
           style={{ imageRendering: "pixelated" }}
         />
 
-        <div className="absolute inset-[70px] z-20 flex flex-col" style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif", textRendering: "geometricPrecision", WebkitFontSmoothing: "antialiased" }}>
+        <div className="absolute inset-[70px] z-20 flex flex-col" style={{ fontFamily: "'Press Start 2P', monospace" }}>
           
           <header className="flex flex-wrap items-center justify-center gap-4 py-2 mb-3">
             <Link href="/" data-testid="link-home">

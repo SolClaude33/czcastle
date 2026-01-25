@@ -238,3 +238,50 @@
   text-shadow: 1px 1px 0 rgba(0,0,0,0.2);
 }
 
+/* Login page: background + pixel font */
+.login-page-bg {
+  position: relative;
+  background: #0a0a12 url(/background..png) no-repeat center center;
+  background-size: cover;
+  min-height: 100vh;
+}
+
+.login-page-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.35) 0%,
+    rgba(0, 0, 0, 0.2) 50%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+  pointer-events: none;
+}
+
+.login-page-bg > * {
+  position: relative;
+  z-index: 1;
+}
+
+.text-shadow-pixel {
+  text-shadow:
+    2px 2px 0 #000,
+    -1px -1px 0 #000,
+    1px 1px 0 rgba(0, 0, 0, 0.8);
+}
+
+/* Castle Clash title: degradado, borde 2px, sombra 3D. Sin fake bold ni sombreado extra. */
+.login-title-castle {
+  font-family: "Press Start 2P", monospace;
+  font-size: clamp(1rem, 5.5vw, 1.5rem);
+  line-height: 1.5;
+  background: linear-gradient(180deg, #fef08a 0%, #fbbf24 40%, #ea580c 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-stroke: 2px #000;
+  paint-order: stroke fill;
+  filter: drop-shadow(0 4px 0 #000);
+}
+

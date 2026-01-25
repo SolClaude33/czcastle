@@ -1739,7 +1739,7 @@
 
         backBtnBg.on('pointerdown', () => {
           backBtnBg.setTexture('btn-small-round-blue-pressed');
-          this.time.delayedCall(100, () => this.scene.start('MenuScene'));
+          this.time.delayedCall(100, () => { window.location.href = '/'; });
         });
         backBtnBg.on('pointerover', () => backBtnBg.setTint(0xCCCCCC));
         backBtnBg.on('pointerout', () => backBtnBg.clearTint());
