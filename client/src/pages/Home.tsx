@@ -1,13 +1,37 @@
-import { useLayoutEffect, useState } from "react";
+import { useLayoutEffect, useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { HomeLeaderboard } from "@/components/HomeLeaderboard";
 
 const W = 2048;
 const H = 1152;
 
+const MENU_IMAGES = [
+  "/img/frame.png",
+  "/img/btn_play.png",
+  "/img/btn_play_cn.png",
+  "/img/card_defense.png",
+  "/img/card_duel.png",
+  "/img/card_rankings.png",
+  "/img/panel_top10.png",
+  "/img/panel_top10_cn.png",
+  "/img/flow.png",
+];
+
+function preloadImages(urls: string[]) {
+  urls.forEach((href) => {
+    const img = new Image();
+    img.src = href;
+  });
+}
+
 export default function Home() {
   const [canvasStyle, setCanvasStyle] = useState<React.CSSProperties>({});
+  const [frameLoaded, setFrameLoaded] = useState(false);
   const { language, setLanguage, t } = useLanguage();
+
+  useEffect(() => {
+    preloadImages(MENU_IMAGES);
+  }, []);
 
   useLayoutEffect(() => {
     const onResize = () => {
@@ -59,15 +83,25 @@ export default function Home() {
     >
       <div
         id="canvas"
-        style={{ ...canvasStyle, imageRendering: "pixelated" }}
+        style={{
+          ...canvasStyle,
+          imageRendering: "pixelated",
+          opacity: frameLoaded ? 1 : 0,
+          transition: "opacity 0.25s ease",
+          pointerEvents: frameLoaded ? "auto" : "none",
+        }}
         role="application"
         aria-label="ONEBATTLELEGEND landing"
       >
-        {/* Base frame as img (not background) */}
+        {/* Base frame - preloaded in index.html; high priority */}
         <img
           src="/img/frame.png"
           alt=""
           draggable={false}
+          fetchPriority="high"
+          decoding="async"
+          onLoad={() => setFrameLoaded(true)}
+          onError={() => setFrameLoaded(true)}
           style={{
             ...layerStyle,
             left: 0,
@@ -93,6 +127,7 @@ export default function Home() {
             muted
             loop
             playsInline
+            preload="auto"
             style={{
               position: "absolute",
               inset: 0,
@@ -312,6 +347,7 @@ export default function Home() {
             src={language === "zh" ? "/img/panel_top10_cn.png" : "/img/panel_top10.png"}
             alt={t("weekly_top10")}
             draggable={false}
+            decoding="async"
             style={{
               ...layerStyle,
               left: 0,
@@ -336,11 +372,13 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Flow bar */}
+        {/* Flow bar - lazy load (below fold) */}
         <img
           src="/img/flow.png"
           alt="Tournament flow"
           draggable={false}
+          loading="lazy"
+          decoding="async"
           data-testid="flow-bar"
           style={{
             ...layerStyle,
