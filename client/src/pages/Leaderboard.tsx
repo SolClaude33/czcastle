@@ -72,6 +72,35 @@ export default function Leaderboard() {
 
   const formatNumber = (n: number) => n.toLocaleString();
   const formatBNB = (s: string) => (parseFloat(s) || 0).toFixed(4);
+  
+  // Formatea números grandes de $GOLD: elimina decimal, cuenta puntos, usa K/M
+  const formatGoldTokens = (value: string | null | undefined): string => {
+    if (!value) return "0";
+    const num = parseFloat(value);
+    if (num === 0) return "0";
+    
+    // Convertir a entero (eliminar decimal)
+    const integer = Math.floor(num);
+    
+    // Formatear con puntos como separadores de miles (formato europeo)
+    const formatted = integer.toLocaleString('de-DE'); // Usa punto como separador de miles
+    
+    // Contar puntos en el string formateado
+    const dotCount = (formatted.match(/\./g) || []).length;
+    
+    if (dotCount === 0) {
+      // Sin puntos, número pequeño
+      return formatted;
+    } else if (dotCount === 1) {
+      // 1 punto → usar K (tomar número hasta el primer punto)
+      const beforeFirstDot = formatted.split('.')[0];
+      return `${beforeFirstDot}K`;
+    } else {
+      // 2+ puntos → usar M (tomar número hasta el primer punto)
+      const beforeFirstDot = formatted.split('.')[0];
+      return `${beforeFirstDot}M`;
+    }
+  };
 
   const getRankIcon = (index: number) => {
     if (index === 0) return "/img/icons/trophy_gold.png";
@@ -309,7 +338,7 @@ export default function Leaderboard() {
                           {formatBNB(treasuryData?.liquidityBalance ?? "0")} BNB
                           {treasuryData?.liquidityTokens && parseFloat(treasuryData.liquidityTokens) > 0 && (
                             <span className="block text-base mt-1">
-                              {parseFloat(treasuryData.liquidityTokens).toLocaleString(undefined, { maximumFractionDigits: 2 })} $GOLD
+                              {formatGoldTokens(treasuryData.liquidityTokens)} $GOLD
                             </span>
                           )}
                         </>
