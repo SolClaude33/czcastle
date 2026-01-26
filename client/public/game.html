@@ -1473,6 +1473,9 @@
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
 
+        // Reiniciar total acumulado al entrar al mapa (mapas no jugados = 0)
+        this.registry.set('campaignTotalScore', 0);
+
         // World map is wider than the screen - allows scrolling
         this.mapWidth = 960;
         this.mapHeight = 540;
@@ -4275,6 +4278,22 @@
         this.currentLevel = data.level || 1;
         this.unlockedNext = false;
 
+        // Acumular score del mapa actual al total (mapas no jugados = 0)
+        var total = (this.registry.get('campaignTotalScore') || 0) + this.finalScore;
+        this.registry.set('campaignTotalScore', total);
+
+        // Enviar siempre el total acumulado: 1 mapa = su score, 2 mapas = suma, 3 = suma de los 3
+        fetch('/api/scores', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ score: total })
+        }).then(function(r) {
+          if (!r.ok) console.warn('[GameOver] Failed to submit score:', r.status);
+        }).catch(function(e) {
+          console.warn('[GameOver] Error submitting score:', e);
+        });
+
         // Unlock next level on victory
         if (this.victory) {
           const nextLevel = this.currentLevel + 1;
@@ -4415,6 +4434,9 @@
       }
 
       retry() {
+        // Quitar el score de este mapa del total (volvemos a jugar el mismo mapa)
+        var prev = this.registry.get('campaignTotalScore') || 0;
+        this.registry.set('campaignTotalScore', Math.max(0, prev - this.finalScore));
         startLevelWithOptionalIntro(this, this.currentLevel);
       }
 
