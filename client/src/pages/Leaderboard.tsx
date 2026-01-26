@@ -1,10 +1,17 @@
 import { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useUsers } from "@/hooks/use-users";
 import { useLanguage } from "@/context/LanguageContext";
 import { Search, RefreshCw, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 
 import seal_512 from "@assets/seal_512.png";
+
+interface TreasuryData {
+  fundsBalance: string;
+  liquidityBalance: string;
+  liquidityTokens: string | null;
+}
 
 export default function Leaderboard() {
   const { data: users, isLoading, refetch, error } = useUsers();
@@ -51,23 +58,20 @@ export default function Leaderboard() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const treasuryData = {
-    feesReceived: 1250000,
-    rewardsPaid: 850000,
-    holderDividends: 300000,
-  };
+  const { data: treasuryData, isLoading: treasuryLoading } = useQuery<TreasuryData>({
+    queryKey: ["treasury"],
+    queryFn: async () => {
+      const res = await fetch("/api/treasury");
+      if (!res.ok) throw new Error("Failed to fetch treasury");
+      return res.json();
+    },
+    refetchInterval: 30_000,
+  });
 
-  const rewardsLog = [
-    { date: "2024-05-20", player: "ShadowHunter", amount: 1000, reason: t("daily_challenge") },
-    { date: "2024-05-20", player: "ShadowHunter", amount: 1000, reason: t("daily_challenge") },
-  ];
-
-  const walletActivity = [
-    { time: "14:30:05", amount: 500, type: "fees" },
-    { time: "14:30:05", amount: 500, type: "fees" },
-  ];
+  const rewardsLog: Array<{ date: string; player: string; amount: number; reason: string }> = [];
 
   const formatNumber = (n: number) => n.toLocaleString();
+  const formatBNB = (s: string) => (parseFloat(s) || 0).toFixed(4);
 
   const getRankIcon = (index: number) => {
     if (index === 0) return "/img/icons/trophy_gold.png";
@@ -239,7 +243,7 @@ export default function Leaderboard() {
                           )}
                         </div>
                         <span className="flex-1 text-xl text-[#2a1810]" data-testid={`text-username-${index + 1}`}>@{user.twitterUsername}</span>
-                        <span className="text-xl text-[#8B4513] font-bold" data-testid={`text-score-${index + 1}`}>{formatNumber(user.highScore ?? 0)} {t("gold")}</span>
+                        <span className="text-xl text-[#8B4513] font-bold" data-testid={`text-score-${index + 1}`}>{formatNumber(user.highScore ?? 0)} {t("points")}</span>
                       </div>
                     ))
                   )}
@@ -258,14 +262,20 @@ export default function Leaderboard() {
                   <span>{t("reason")}</span>
                 </div>
                 <div className="space-y-1 max-h-20 overflow-y-auto custom-scrollbar">
-                  {rewardsLog.map((log, i) => (
-                    <div key={i} data-testid={`row-reward-${i}`} className="grid grid-cols-4 gap-3 text-base px-2 py-1 bg-white/30 rounded-lg">
-                      <span className="text-[#7a6a5a]">{log.date}</span>
-                      <span className="text-[#2a1810]">{log.player}</span>
-                      <span className="text-green-600 font-bold">+{log.amount} {t("gold")}</span>
-                      <span className="text-[#7a6a5a]">{log.reason}</span>
+                  {rewardsLog.length === 0 ? (
+                    <div className="text-center py-4 text-base text-[#7a6a5a]">
+                      {t("no_data")}
                     </div>
-                  ))}
+                  ) : (
+                    rewardsLog.map((log, i) => (
+                      <div key={i} data-testid={`row-reward-${i}`} className="grid grid-cols-4 gap-3 text-base px-2 py-1 bg-white/30 rounded-lg">
+                        <span className="text-[#7a6a5a]">{log.date}</span>
+                        <span className="text-[#2a1810]">{log.player}</span>
+                        <span className="text-green-600 font-bold">+{log.amount} {t("gold")}</span>
+                        <span className="text-[#7a6a5a]">{log.reason}</span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
@@ -281,73 +291,63 @@ export default function Leaderboard() {
                   <div className="card-treasury" data-testid="card-fees-received">
                     <img src="/img/icons/coins_stack.png" alt="" className="w-12 h-12 mx-auto mb-2" style={{ imageRendering: "pixelated" }} />
                     <p className="text-sm text-[#5a4a3a] mb-1">{t("fees_received")}</p>
-                    <p className="text-xl text-[#2a1810] font-bold" data-testid="value-fees-received">{formatNumber(treasuryData.feesReceived)} {t("gold")}</p>
+                    <p className="text-xl text-[#2a1810] font-bold" data-testid="value-fees-received">
+                      {treasuryLoading ? "…" : formatBNB(treasuryData?.fundsBalance ?? "0")} BNB
+                    </p>
                   </div>
                   <div className="card-treasury" data-testid="card-rewards-paid">
                     <img src="/img/icons/trophy_gold.png" alt="" className="w-12 h-12 mx-auto mb-2" style={{ imageRendering: "pixelated" }} />
                     <p className="text-sm text-[#5a4a3a] mb-1">{t("rewards_paid")}</p>
-                    <p className="text-xl text-[#2a1810] font-bold" data-testid="value-rewards-paid">{formatNumber(treasuryData.rewardsPaid)} {t("gold")}</p>
+                    <p className="text-xl text-[#2a1810] font-bold" data-testid="value-rewards-paid">0 BNB</p>
                   </div>
-                  <div className="card-treasury" data-testid="card-dividends">
-                    <img src="/img/icons/dividends_arrow.png" alt="" className="w-12 h-12 mx-auto mb-2" style={{ imageRendering: "pixelated" }} />
-                    <p className="text-sm text-[#5a4a3a] mb-1">{t("holder_dividends")}</p>
-                    <p className="text-xl text-[#2a1810] font-bold" data-testid="value-dividends">{formatNumber(treasuryData.holderDividends)} {t("gold")}</p>
+                  <div className="card-treasury" data-testid="card-liquidity">
+                    <img src="/img/icons/liquidity_drop.png" alt="" className="w-12 h-12 mx-auto mb-2" style={{ imageRendering: "pixelated" }} />
+                    <p className="text-sm text-[#5a4a3a] mb-1">{t("liquidity")}</p>
+                    <p className="text-xl text-[#2a1810] font-bold" data-testid="value-liquidity">
+                      {treasuryLoading ? "…" : (
+                        <>
+                          {formatBNB(treasuryData?.liquidityBalance ?? "0")} BNB
+                          {treasuryData?.liquidityTokens && parseFloat(treasuryData.liquidityTokens) > 0 && (
+                            <span className="block text-base mt-1">
+                              {parseFloat(treasuryData.liquidityTokens).toLocaleString(undefined, { maximumFractionDigits: 2 })} $GOLD
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </p>
                   </div>
                 </div>
               </div>
 
-              <div className="panel-light flex-1">
+              <div className="panel-light">
                 <h3 className="text-xl text-[#2a1810] mb-3">{t("tax_flow")}</h3>
                 
                 <div className="inline-block px-4 py-2 bg-red-800 border-2 border-red-600 rounded-lg mb-3">
                   <span className="text-white text-xl font-bold">{t("tax_rate")}</span>
                 </div>
 
-                <div className="flex flex-wrap gap-3 mb-3">
-                  <div className="flex-[4] min-w-[120px] bg-[#d4a853]/40 border-2 border-[#d4a853] rounded-lg p-3 text-center" data-testid="tax-players">
+                <div className="flex flex-wrap gap-3">
+                  <div className="flex-1 min-w-[140px] bg-[#d4a853]/40 border-2 border-[#d4a853] rounded-lg p-3 text-center" data-testid="tax-players">
                     <img src="/img/icons/coins_stack.png" alt="" className="w-8 h-8 mx-auto mb-1" style={{ imageRendering: "pixelated" }} />
-                    <p className="text-2xl font-bold text-[#8B4513]" data-testid="value-tax-players">40%</p>
-                    <p className="text-sm text-[#5a4a3a] mt-1">{t("players_pool")} =</p>
+                    <p className="text-2xl font-bold text-[#8B4513]" data-testid="value-tax-players">60%</p>
+                    <p className="text-sm text-[#5a4a3a] mt-1">{t("players_pool")}</p>
                     <p className="text-xs text-[#7a6a5a]">{t("players_pool_desc")}</p>
                   </div>
-                  <div className="flex-[3] min-w-[100px] bg-white/40 border-2 border-[#c4b49a] rounded-lg p-3 text-center" data-testid="tax-dividends">
-                    <img src="/img/icons/dividends_arrow.png" alt="" className="w-8 h-8 mx-auto mb-1" style={{ imageRendering: "pixelated" }} />
-                    <p className="text-2xl font-bold text-[#2a1810]" data-testid="value-tax-dividends">30%</p>
-                    <p className="text-sm text-[#5a4a3a] mt-1">{t("holder_divs")}</p>
-                  </div>
-                  <div className="flex-[3] min-w-[100px] bg-white/40 border-2 border-[#c4b49a] rounded-lg p-3 text-center" data-testid="tax-liquidity">
+                  <div className="flex-1 min-w-[140px] bg-white/40 border-2 border-[#c4b49a] rounded-lg p-3 text-center" data-testid="tax-liquidity">
                     <img src="/img/icons/liquidity_drop.png" alt="" className="w-8 h-8 mx-auto mb-1" style={{ imageRendering: "pixelated" }} />
-                    <p className="text-2xl font-bold text-[#2a1810]" data-testid="value-tax-liquidity">30%</p>
+                    <p className="text-2xl font-bold text-[#2a1810]" data-testid="value-tax-liquidity">40%</p>
                     <p className="text-sm text-[#5a4a3a] mt-1">{t("liquidity")}</p>
                   </div>
                 </div>
-
-                <div className="text-sm text-[#5a4a3a] space-y-1">
-                  <p className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-[#d4a853]" />
-                    {t("funds_wallet_info")}
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-blue-500" />
-                    {t("flaps_auto_info")}
-                  </p>
-                </div>
               </div>
 
-              <div className="panel-light" data-testid="panel-wallet-activity">
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                  <h3 className="text-xl text-[#2a1810]">{t("wallet_activity")}</h3>
-                  <span className="px-3 py-1 bg-red-600 rounded-lg text-base text-white animate-pulse" data-testid="badge-live-wallet">{t("live")}</span>
-                </div>
-                <p className="text-base text-[#7a6a5a] mb-2">{t("incoming_fees")}</p>
-                <div className="space-y-1 max-h-16 overflow-y-auto custom-scrollbar">
-                  {walletActivity.map((activity, i) => (
-                    <div key={i} data-testid={`row-wallet-${i}`} className="flex flex-wrap items-center gap-4 text-base px-3 py-1 bg-white/30 rounded-lg">
-                      <span className="text-[#7a6a5a]">{activity.time}</span>
-                      <span className="text-green-600 font-bold">+{activity.amount} {t("gold")} {t("fees_suffix")}</span>
-                    </div>
-                  ))}
-                </div>
+              <div className="panel-light">
+                <img
+                  src="/img/1500x500.jpg"
+                  alt=""
+                  className="w-full h-auto rounded-lg"
+                  style={{ imageRendering: "pixelated", maxHeight: "260px", objectFit: "cover", width: "100%" }}
+                />
               </div>
             </div>
           </div>

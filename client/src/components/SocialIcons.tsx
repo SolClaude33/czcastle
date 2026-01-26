@@ -2,7 +2,7 @@ export default function SocialIcons() {
   return (
     <>
       <a
-        href="https://x.com/OneBattleLegend"
+        href="https://x.com/1BattleLegend"
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-4 left-4 z-50"

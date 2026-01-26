@@ -7,6 +7,7 @@ import {
   getAdminDb,
   isFirebaseConfigured,
 } from "./firebase.js";
+import { getContractData } from "./contract.js";
 
 async function seedDatabase() {
   if (process.env.NODE_ENV === "production") return;
@@ -252,6 +253,24 @@ export function registerRoutes(app: Express): void {
     } catch (err) {
       console.error("[GET /api/users] Error:", err);
       res.status(500).json({ message: "Failed to fetch users", error: String(err) });
+    }
+  });
+
+  app.get("/api/treasury", async (_req, res) => {
+    try {
+      const data = await getContractData();
+      res.json({
+        fundsBalance: data.fundsBalance,
+        liquidityBalance: data.liquidityBalance,
+        liquidityTokens: data.liquidityTokens ?? null,
+      });
+    } catch (err) {
+      console.error("[GET /api/treasury] Error:", err);
+      res.status(500).json({
+        fundsBalance: "0",
+        liquidityBalance: "0",
+        liquidityTokens: null,
+      });
     }
   });
 }
