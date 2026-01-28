@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useUsers } from "@/hooks/use-users";
 import { useLanguage } from "@/context/LanguageContext";
-import { Search, RefreshCw, Loader2 } from "lucide-react";
+import { Search, RefreshCw, Loader2, Copy, Check } from "lucide-react";
 import { Link } from "wouter";
 
 import seal_512 from "@assets/seal_512.png";
@@ -32,6 +32,7 @@ export default function Leaderboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
+  const [copied, setCopied] = useState(false);
 
   // Ordenar usuarios por highScore (mayor a menor), filtrar los que no tienen highScore o es 0
   const sortedUsers = users
@@ -191,21 +192,40 @@ export default function Leaderboard() {
                 ONEBATTLELEGEND 一战封神
               </h1>
               {contractAddressData?.address && (
-                <div 
-                  className="relative flex items-center justify-center px-4 py-2"
-                  style={{
-                    backgroundImage: "url('/img/Share_button.png')",
-                    backgroundSize: "100% 100%",
-                    backgroundPosition: "center",
-                    backgroundRepeat: "no-repeat",
-                    imageRendering: "pixelated",
-                    minWidth: "200px",
-                    minHeight: "50px",
-                  }}
-                >
-                  <span className="text-sm font-bold text-white drop-shadow-[1px_1px_0_#000]" style={{ textShadow: "2px 2px 0 #000" }}>
-                    CA: {contractAddressData.address.slice(0, 6)}...{contractAddressData.address.slice(-4)}
-                  </span>
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="relative flex items-center justify-center px-4 py-2"
+                    style={{
+                      backgroundImage: "url('/img/Share_button.png')",
+                      backgroundSize: "100% 100%",
+                      backgroundPosition: "center",
+                      backgroundRepeat: "no-repeat",
+                      imageRendering: "pixelated",
+                      minWidth: "fit-content",
+                      minHeight: "50px",
+                    }}
+                  >
+                    <span className="text-xs font-bold text-white drop-shadow-[1px_1px_0_#000] whitespace-nowrap" style={{ textShadow: "2px 2px 0 #000" }}>
+                      CA: {contractAddressData.address}
+                    </span>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      if (contractAddressData.address) {
+                        await navigator.clipboard.writeText(contractAddressData.address);
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      }
+                    }}
+                    className="flex items-center justify-center w-10 h-10 rounded-lg bg-[#d4a853] hover:bg-[#c49842] border-2 border-[#8B4513] transition-all"
+                    title={copied ? "Copied!" : "Copy CA"}
+                  >
+                    {copied ? (
+                      <Check className="w-5 h-5 text-white" />
+                    ) : (
+                      <Copy className="w-5 h-5 text-white" />
+                    )}
+                  </button>
                 </div>
               )}
             </div>
