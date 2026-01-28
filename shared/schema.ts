@@ -39,6 +39,22 @@ export const insertScoreSchema = z.object({
   userId: z.string().min(1).optional(),
 });
 
+// Reward log: TX link + player + amount (manual registry when you send a reward)
+export const rewardLogSchema = z.object({
+  id: z.string(),
+  txLink: z.string().url(),
+  player: z.string().min(1),
+  amount: z.number().positive(),
+  createdAt: zDate,
+});
+export const insertRewardLogSchema = z.object({
+  txLink: z.string().url(),
+  player: z.string().min(1),
+  amount: z.number().positive(),
+});
+export type RewardLog = z.infer<typeof rewardLogSchema>;
+export type InsertRewardLog = z.infer<typeof insertRewardLogSchema>;
+
 export type User = z.infer<typeof userSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpdateUser = z.infer<typeof updateUserSchema>;

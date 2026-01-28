@@ -273,4 +273,58 @@ export function registerRoutes(app: Express): void {
       });
     }
   });
+
+  app.get("/api/contract-address", async (_req, res) => {
+    try {
+      const tokenAddress = process.env.TOKEN_CONTRACT_ADDRESS;
+      const taxProcessorAddress = process.env.TAX_PROCESSOR_ADDRESS;
+      // Prefer TOKEN_CONTRACT_ADDRESS, fallback to TAX_PROCESSOR_ADDRESS
+      const address = tokenAddress || taxProcessorAddress || null;
+      res.json({ address });
+    } catch (err) {
+      console.error("[GET /api/contract-address] Error:", err);
+      res.status(500).json({ address: null });
+    }
+  });
+
+  app.get("/api/rewards-log", async (_req, res) => {
+    try {
+      const logs = await storage.getRewardLogs();
+      res.json(logs);
+    } catch (err) {
+      console.error("[GET /api/rewards-log] Error:", err);
+      res.status(500).json({ message: "Failed to fetch rewards log" });
+    }
+  });
+
+  const insertRewardLogBody = z.object({
+    txLink: z.string().url(),
+    player: z.string().min(1),
+    amount: z.number().positive(),
+  });
+
+  app.post("/api/rewards-log", async (req, res) => {
+    try {
+      const sessionCookie = (req as any).cookies?.session as string | undefined;
+      if (!sessionCookie) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      if (!isFirebaseConfigured()) {
+        return res.status(500).json({ message: "Firebase not configured" });
+      }
+      const decoded = await getAdminAuth().verifySessionCookie(sessionCookie, true);
+      const body = insertRewardLogBody.parse(req.body);
+      const log = await storage.createRewardLog(body);
+      res.status(201).json(log);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid request", errors: err.errors });
+      }
+      if ((err as any)?.code === "auth/session-cookie-expired" || (err as any)?.code === "auth/session-cookie-revoked") {
+        return res.status(401).json({ message: "Session expired" });
+      }
+      console.error("[POST /api/rewards-log] Error:", err);
+      res.status(500).json({ message: "Failed to add reward log" });
+    }
+  });
 }

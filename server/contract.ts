@@ -130,7 +130,7 @@ export async function getContractData(): Promise<ContractData> {
           console.warn("[Contract] totalQuoteAddedToLiquidity read error:", e);
           return BigInt(0);
         }),
-      // totalTokenAddedToLiquidity = total $GOLD tokens added to liquidity
+      // totalTokenAddedToLiquidity = total $战封神 tokens added to liquidity
       publicClient
         .readContract({
           address: taxProcessorAddress as `0x${string}`,

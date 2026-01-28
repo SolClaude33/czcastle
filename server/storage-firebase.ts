@@ -6,6 +6,8 @@ import {
   User,
   InsertUser,
   UpdateUser,
+  RewardLog,
+  InsertRewardLog,
 } from "../shared/schema.js";
 
 export interface IStorage {
@@ -16,6 +18,8 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(userId: string, updates: UpdateUser): Promise<User>;
   getUserByTwitterId(twitterId: string): Promise<User | null>;
+  getRewardLogs(): Promise<RewardLog[]>;
+  createRewardLog(insert: InsertRewardLog): Promise<RewardLog>;
 }
 
 export class FirebaseStorage implements IStorage {
@@ -177,6 +181,43 @@ export class FirebaseStorage implements IStorage {
       createdAt: data.createdAt?.toDate() || new Date(),
       updatedAt: data.updatedAt?.toDate() || new Date(),
     };
+  }
+
+  async getRewardLogs(): Promise<RewardLog[]> {
+    const db = getAdminDb();
+    const snapshot = await db
+      .collection("reward_logs")
+      .orderBy("createdAt", "desc")
+      .get();
+    return snapshot.docs.map((doc) => {
+      const d = doc.data();
+      return {
+        id: doc.id,
+        txLink: d.txLink,
+        player: d.player,
+        amount: d.amount,
+        createdAt: d.createdAt?.toDate() || new Date(),
+      };
+    });
+  }
+
+  async createRewardLog(insert: InsertRewardLog): Promise<RewardLog> {
+    const db = getAdminDb();
+    const ref = db.collection("reward_logs").doc();
+    const log: RewardLog = {
+      id: ref.id,
+      txLink: insert.txLink,
+      player: insert.player,
+      amount: insert.amount,
+      createdAt: new Date(),
+    };
+    await ref.set({
+      txLink: log.txLink,
+      player: log.player,
+      amount: log.amount,
+      createdAt: admin.firestore.Timestamp.fromDate(log.createdAt),
+    });
+    return log;
   }
 }
 

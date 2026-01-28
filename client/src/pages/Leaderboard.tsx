@@ -13,6 +13,18 @@ interface TreasuryData {
   liquidityTokens: string | null;
 }
 
+interface ContractAddressData {
+  address: string | null;
+}
+
+interface RewardLogEntry {
+  id: string;
+  txLink: string;
+  player: string;
+  amount: number;
+  createdAt: string;
+}
+
 export default function Leaderboard() {
   const { data: users, isLoading, refetch, error } = useUsers();
   const { language, setLanguage, t } = useLanguage();
@@ -68,12 +80,33 @@ export default function Leaderboard() {
     refetchInterval: 30_000,
   });
 
-  const rewardsLog: Array<{ date: string; player: string; amount: number; reason: string }> = [];
+  const { data: contractAddressData } = useQuery<ContractAddressData>({
+    queryKey: ["contract-address"],
+    queryFn: async () => {
+      const res = await fetch("/api/contract-address");
+      if (!res.ok) return { address: null };
+      return res.json();
+    },
+  });
+
+  const { data: rewardsLog = [], isLoading: rewardsLogLoading } = useQuery<RewardLogEntry[]>({
+    queryKey: ["rewards-log"],
+    queryFn: async () => {
+      const res = await fetch("/api/rewards-log");
+      if (!res.ok) throw new Error("Failed to fetch rewards log");
+      const raw = await res.json();
+      return (raw || []).map((r: { id: string; txLink: string; player: string; amount: number; createdAt: string }) => ({
+        ...r,
+        createdAt: typeof r.createdAt === "string" ? r.createdAt : (r.createdAt ? new Date(r.createdAt).toISOString() : ""),
+      }));
+    },
+    refetchInterval: 60_000,
+  });
 
   const formatNumber = (n: number) => n.toLocaleString();
   const formatBNB = (s: string) => (parseFloat(s) || 0).toFixed(4);
   
-  // Formatea números grandes de $GOLD: elimina decimal, cuenta puntos, usa K/M
+  // Formatea números grandes de $战封神: elimina decimal, cuenta puntos, usa K/M
   const formatGoldTokens = (value: string | null | undefined): string => {
     if (!value) return "0";
     const num = parseFloat(value);
@@ -153,9 +186,29 @@ export default function Leaderboard() {
             <Link href="/" data-testid="link-home">
               <img src={seal_512} alt="logo" className="w-16 h-16 cursor-pointer mt-[25px] mb-[25px]" style={{ imageRendering: "pixelated" }} />
             </Link>
-            <h1 className="text-4xl tracking-wider drop-shadow-[2px_2px_0_#000] text-[#e8c327]" style={{ textShadow: "3px 3px 0 #000" }}>
-              ONEBATTLELEGEND 一战封神
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-4xl tracking-wider drop-shadow-[2px_2px_0_#000] text-[#e8c327]" style={{ textShadow: "3px 3px 0 #000" }}>
+                ONEBATTLELEGEND 一战封神
+              </h1>
+              {contractAddressData?.address && (
+                <div 
+                  className="relative flex items-center justify-center px-4 py-2"
+                  style={{
+                    backgroundImage: "url('/img/Share_button.png')",
+                    backgroundSize: "100% 100%",
+                    backgroundPosition: "center",
+                    backgroundRepeat: "no-repeat",
+                    imageRendering: "pixelated",
+                    minWidth: "200px",
+                    minHeight: "50px",
+                  }}
+                >
+                  <span className="text-sm font-bold text-white drop-shadow-[1px_1px_0_#000]" style={{ textShadow: "2px 2px 0 #000" }}>
+                    CA: {contractAddressData.address.slice(0, 6)}...{contractAddressData.address.slice(-4)}
+                  </span>
+                </div>
+              )}
+            </div>
             <div className="flex items-center gap-3 ml-auto">
               <Link
                 href="/login"
@@ -288,20 +341,26 @@ export default function Leaderboard() {
                   <span>{t("date")}</span>
                   <span>{t("player")}</span>
                   <span>{t("amount")}</span>
-                  <span>{t("reason")}</span>
+                  <span>{t("transaction")}</span>
                 </div>
-                <div className="space-y-1 max-h-20 overflow-y-auto custom-scrollbar">
-                  {rewardsLog.length === 0 ? (
+                <div className="space-y-1 max-h-64 overflow-y-auto custom-scrollbar">
+                  {rewardsLogLoading ? (
+                    <div className="flex justify-center py-4">
+                      <Loader2 className="w-6 h-6 animate-spin text-[#d4a853]" />
+                    </div>
+                  ) : rewardsLog.length === 0 ? (
                     <div className="text-center py-4 text-base text-[#7a6a5a]">
                       {t("no_data")}
                     </div>
                   ) : (
                     rewardsLog.map((log, i) => (
-                      <div key={i} data-testid={`row-reward-${i}`} className="grid grid-cols-4 gap-3 text-base px-2 py-1 bg-white/30 rounded-lg">
-                        <span className="text-[#7a6a5a]">{log.date}</span>
+                      <div key={log.id} data-testid={`row-reward-${i}`} className="grid grid-cols-4 gap-3 text-base px-2 py-1 bg-white/30 rounded-lg items-center">
+                        <span className="text-[#7a6a5a]">{new Date(log.createdAt).toLocaleDateString()}</span>
                         <span className="text-[#2a1810]">{log.player}</span>
-                        <span className="text-green-600 font-bold">+{log.amount} {t("gold")}</span>
-                        <span className="text-[#7a6a5a]">{log.reason}</span>
+                        <span className="text-green-600 font-bold">+{typeof log.amount === "number" ? log.amount.toFixed(4) : log.amount} BNB</span>
+                        <a href={log.txLink} target="_blank" rel="noopener noreferrer" className="text-[#1a8cd8] hover:underline truncate" title={log.txLink}>
+                          TX
+                        </a>
                       </div>
                     ))
                   )}
@@ -338,7 +397,7 @@ export default function Leaderboard() {
                           {formatBNB(treasuryData?.liquidityBalance ?? "0")} BNB
                           {treasuryData?.liquidityTokens && parseFloat(treasuryData.liquidityTokens) > 0 && (
                             <span className="block text-base mt-1">
-                              {formatGoldTokens(treasuryData.liquidityTokens)} $GOLD
+                              {formatGoldTokens(treasuryData.liquidityTokens)} $战封神
                             </span>
                           )}
                         </>
