@@ -92,7 +92,7 @@ export default function Login() {
           <div className="relative z-10 flex flex-col items-center justify-center w-[80%] h-[80%] gap-2 font-pixel">
             <div className="text-center shrink-0">
               <h1 className="login-title-castle mb-1.5">
-                ONEBATTLELEGEND
+                1战斗传奇
               </h1>
               <p className="font-pixel text-white/90 text-[10px] sm:text-xs leading-relaxed max-w-[85%] mx-auto">
                 login to play defense mode

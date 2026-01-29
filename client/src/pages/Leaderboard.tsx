@@ -189,7 +189,7 @@ export default function Leaderboard() {
             </Link>
             <div className="flex items-center gap-3">
               <h1 className="text-4xl tracking-wider drop-shadow-[2px_2px_0_#000] text-[#e8c327]" style={{ textShadow: "3px 3px 0 #000" }}>
-                ONEBATTLELEGEND 一战封神
+                1战斗传奇
               </h1>
               {contractAddressData?.address && (
                 <div className="flex items-center gap-2">
@@ -437,13 +437,13 @@ export default function Leaderboard() {
                 <div className="flex flex-wrap gap-3">
                   <div className="flex-1 min-w-[140px] bg-[#d4a853]/40 border-2 border-[#d4a853] rounded-lg p-3 text-center" data-testid="tax-players">
                     <img src="/img/icons/coins_stack.png" alt="" className="w-8 h-8 mx-auto mb-1" style={{ imageRendering: "pixelated" }} />
-                    <p className="text-2xl font-bold text-[#8B4513]" data-testid="value-tax-players">60%</p>
+                    <p className="text-2xl font-bold text-[#8B4513]" data-testid="value-tax-players">80%</p>
                     <p className="text-sm text-[#5a4a3a] mt-1">{t("players_pool")}</p>
                     <p className="text-xs text-[#7a6a5a]">{t("players_pool_desc")}</p>
                   </div>
                   <div className="flex-1 min-w-[140px] bg-white/40 border-2 border-[#c4b49a] rounded-lg p-3 text-center" data-testid="tax-liquidity">
                     <img src="/img/icons/liquidity_drop.png" alt="" className="w-8 h-8 mx-auto mb-1" style={{ imageRendering: "pixelated" }} />
-                    <p className="text-2xl font-bold text-[#2a1810]" data-testid="value-tax-liquidity">40%</p>
+                    <p className="text-2xl font-bold text-[#2a1810]" data-testid="value-tax-liquidity">20%</p>
                     <p className="text-sm text-[#5a4a3a] mt-1">{t("liquidity")}</p>
                   </div>
                 </div>
