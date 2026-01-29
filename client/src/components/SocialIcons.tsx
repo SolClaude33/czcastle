@@ -16,7 +16,7 @@ export default function SocialIcons() {
         />
       </a>
       <a
-        href="https://t.me/Onebattlelegend"
+        href="https://t.me/BattleLegendBNB"
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-4 right-4 z-50"
