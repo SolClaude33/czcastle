@@ -100,7 +100,7 @@ export default function Login() {
             </div>
 
             {!user ? (
-              <div className="flex flex-col items-center w-full shrink-0 gap-2">
+              <div className="flex flex-col items-center w-full shrink-0 gap-3">
                 <p className="font-pixel text-white/90 text-center text-[10px] sm:text-xs leading-relaxed px-2">
                   sign up with twitter to continue
                 </p>
@@ -125,6 +125,27 @@ export default function Login() {
                     />
                     <span className="font-pixel text-white text-xs sm:text-sm drop-shadow-[0_1px_0_#000]">
                       Sign in with X
+                    </span>
+                  </span>
+                </button>
+                <p className="font-pixel text-white/70 text-center text-[9px] sm:text-[10px] leading-relaxed">
+                  or try without account
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { window.location.href = "/game.html?mode=defense"; }}
+                  className="relative inline-flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 rounded-lg transition-transform hover:scale-105 active:scale-95 opacity-90 hover:opacity-100"
+                  aria-label="Play demo"
+                >
+                  <img
+                    src="/img/Share_button.png"
+                    alt=""
+                    className="h-12 w-auto object-contain pointer-events-none block"
+                    style={{ imageRendering: "pixelated" }}
+                  />
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    <span className="font-pixel text-white text-xs sm:text-sm drop-shadow-[0_1px_0_#000]">
+                      DEMO
                     </span>
                   </span>
                 </button>
