@@ -1,8 +1,7 @@
 // EVM contract reader – BSC token (new ABI)
-// Reads (new requirement):
-// - Fees received (BNB): feeFounder
-// - Liquidity (BNB): feeLiquidity
-// - Liquidity (token): reserves from Pancake pair() (for display)
+// Reads:
+// - Fees received (BNB): quoteFounder (quote* are denominated in quote token, i.e. BNB/WBNB)
+// - Liquidity (BNB): feeLiquidity (per requirement)
 
 import { createPublicClient, http, formatUnits, type PublicClient } from "viem";
 import { bsc } from "viem/chains";
@@ -214,8 +213,8 @@ export async function getContractData(opts?: {
         ? feeAccumulatedRaw - quoteClaimedRaw
         : BigInt(0);
 
-    // "Fees received" (Funds) – per new requirement: feeFounder
-    const fundsBalance = formatUnits(feeFounderRaw, 18);
+    // "Fees received" (Funds) – BNB amount is tracked in quoteFounder
+    const fundsBalance = formatUnits(quoteFounderRaw, 18);
 
     // "Liquidity" (BNB) – per new requirement: feeLiquidity
     let liquidityBalance = formatUnits(feeLiquidityRaw, 18);
