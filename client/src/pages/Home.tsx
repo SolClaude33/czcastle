@@ -91,7 +91,7 @@ export default function Home() {
           pointerEvents: frameLoaded ? "auto" : "none",
         }}
         role="application"
-        aria-label="1战斗传奇 landing"
+        aria-label="ONEBATTLELEGEND landing"
       >
         {/* Base frame - preloaded in index.html; high priority */}
         <img

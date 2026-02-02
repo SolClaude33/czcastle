@@ -256,20 +256,25 @@ export function registerRoutes(app: Express): void {
     }
   });
 
-  app.get("/api/treasury", async (_req, res) => {
+  app.get("/api/treasury", async (req, res) => {
     try {
-      const data = await getContractData();
+      const token = typeof (req.query as any)?.token === "string" ? (req.query as any).token : undefined;
+      const debug = String((req.query as any)?.debug || "") === "1";
+
+      const tokenAddress =
+        token && /^0x[a-fA-F0-9]{40}$/.test(token) ? token : undefined;
+
+      const data = await getContractData({ tokenAddress, includeDebug: debug });
       res.json({
         fundsBalance: data.fundsBalance,
         liquidityBalance: data.liquidityBalance,
-        liquidityTokens: data.liquidityTokens ?? null,
+        ...(debug ? { debug: data.debug ?? null } : {}),
       });
     } catch (err) {
       console.error("[GET /api/treasury] Error:", err);
       res.status(500).json({
         fundsBalance: "0",
         liquidityBalance: "0",
-        liquidityTokens: null,
       });
     }
   });

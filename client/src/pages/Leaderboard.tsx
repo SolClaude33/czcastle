@@ -10,7 +10,6 @@ import seal_512 from "@assets/seal_512.png";
 interface TreasuryData {
   fundsBalance: string;
   liquidityBalance: string;
-  liquidityTokens: string | null;
 }
 
 interface ContractAddressData {
@@ -107,34 +106,7 @@ export default function Leaderboard() {
   const formatNumber = (n: number) => n.toLocaleString();
   const formatBNB = (s: string) => (parseFloat(s) || 0).toFixed(4);
   
-  // Formatea números grandes de $战封神: elimina decimal, cuenta puntos, usa K/M
-  const formatGoldTokens = (value: string | null | undefined): string => {
-    if (!value) return "0";
-    const num = parseFloat(value);
-    if (num === 0) return "0";
-    
-    // Convertir a entero (eliminar decimal)
-    const integer = Math.floor(num);
-    
-    // Formatear con puntos como separadores de miles (formato europeo)
-    const formatted = integer.toLocaleString('de-DE'); // Usa punto como separador de miles
-    
-    // Contar puntos en el string formateado
-    const dotCount = (formatted.match(/\./g) || []).length;
-    
-    if (dotCount === 0) {
-      // Sin puntos, número pequeño
-      return formatted;
-    } else if (dotCount === 1) {
-      // 1 punto → usar K (tomar número hasta el primer punto)
-      const beforeFirstDot = formatted.split('.')[0];
-      return `${beforeFirstDot}K`;
-    } else {
-      // 2+ puntos → usar M (tomar número hasta el primer punto)
-      const beforeFirstDot = formatted.split('.')[0];
-      return `${beforeFirstDot}M`;
-    }
-  };
+  // liquidityTokens removed (no longer needed)
 
   const getRankIcon = (index: number) => {
     if (index === 0) return "/img/icons/trophy_gold.png";
@@ -189,7 +161,7 @@ export default function Leaderboard() {
             </Link>
             <div className="flex items-center gap-3">
               <h1 className="text-4xl tracking-wider drop-shadow-[2px_2px_0_#000] text-[#e8c327]" style={{ textShadow: "3px 3px 0 #000" }}>
-                1战斗传奇
+                ONEBATTLELEGEND
               </h1>
               {contractAddressData?.address && (
                 <div className="flex items-center gap-2">
@@ -415,11 +387,6 @@ export default function Leaderboard() {
                       {treasuryLoading ? "…" : (
                         <>
                           {formatBNB(treasuryData?.liquidityBalance ?? "0")} BNB
-                          {treasuryData?.liquidityTokens && parseFloat(treasuryData.liquidityTokens) > 0 && (
-                            <span className="block text-base mt-1">
-                              {formatGoldTokens(treasuryData.liquidityTokens)} $战封神
-                            </span>
-                          )}
                         </>
                       )}
                     </p>

@@ -1,83 +1,133 @@
-// EVM contract reader – BSC token + tax processor (funds + liquidity)
-// Same approach as Gold-main: read taxProcessor from token, then read funds/liquidity
+// EVM contract reader – BSC token (new ABI)
+// Reads (new requirement):
+// - Fees received (BNB): feeFounder
+// - Liquidity (BNB): feeLiquidity
+// - Liquidity (token): reserves from Pancake pair() (for display)
 
-import { createPublicClient, http, formatEther, type PublicClient } from "viem";
+import { createPublicClient, http, formatUnits, type PublicClient } from "viem";
 import { bsc } from "viem/chains";
 
 const TOKEN_ADDRESS = process.env.TOKEN_CONTRACT_ADDRESS;
-const TAX_PROCESSOR_ADDRESS_ENV = process.env.TAX_PROCESSOR_ADDRESS;
 
-// Token Contract ABI - to read taxProcessor address
+// New token ABI (minimal subset we need)
 const TOKEN_ABI = [
   {
     type: "function",
-    name: "taxProcessor",
+    name: "pair",
     inputs: [],
     outputs: [{ name: "", type: "address", internalType: "address" }],
     stateMutability: "view",
   },
+  {
+    type: "function",
+    name: "WETH",
+    inputs: [],
+    outputs: [{ name: "", type: "address", internalType: "address" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "quoteFounder",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "quoteHolder",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "feeAccumulated",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "quoteClaimed",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "feeFounder",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "feeLiquidity",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "decimals",
+    inputs: [],
+    outputs: [{ name: "", type: "uint8", internalType: "uint8" }],
+    stateMutability: "view",
+  },
 ] as const;
 
-// Tax Processor ABI - Complete ABI from contract
-const TAX_PROCESSOR_ABI = [
+// Pancake/UniswapV2 pair ABI (minimal)
+const PAIR_ABI = [
   {
-    inputs: [],
-    name: "totalQuoteAddedToLiquidity",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
     type: "function",
+    name: "token0",
+    inputs: [],
+    outputs: [{ name: "", type: "address", internalType: "address" }],
+    stateMutability: "view",
   },
   {
-    inputs: [],
-    name: "totalTokenAddedToLiquidity",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
     type: "function",
+    name: "token1",
+    inputs: [],
+    outputs: [{ name: "", type: "address", internalType: "address" }],
+    stateMutability: "view",
   },
   {
-    inputs: [],
-    name: "totalQuoteSentToMarketing",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
     type: "function",
-  },
-  {
+    name: "getReserves",
     inputs: [],
-    name: "marketQuoteBalance",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    outputs: [
+      { name: "_reserve0", type: "uint112", internalType: "uint112" },
+      { name: "_reserve1", type: "uint112", internalType: "uint112" },
+      { name: "_blockTimestampLast", type: "uint32", internalType: "uint32" },
+    ],
     stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "feeQuoteBalance",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "lpQuoteBalance",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "dividendQuoteBalance",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
   },
 ] as const;
 
 export interface ContractData {
   fundsBalance: string;
   liquidityBalance: string;
-  liquidityTokens?: string;
+  debug?: {
+    tokenAddress: string;
+    pairAddress: string;
+    weth: string;
+    tokenDecimals: number;
+    quoteFounder: string;
+    quoteHolder: string;
+    feeAccumulated: string;
+    quoteClaimed: string;
+    feeFounder: string;
+    feeLiquidity: string;
+    feesFromQuotes: string;
+    feesUnclaimed: string;
+  };
 }
 
-export async function getContractData(): Promise<ContractData> {
+export async function getContractData(opts?: {
+  tokenAddress?: string;
+  includeDebug?: boolean;
+}): Promise<ContractData> {
   try {
     const rpcUrl = process.env.EVM_RPC_URL || "https://bsc-dataseed1.binance.org";
     const publicClient: PublicClient = createPublicClient({
@@ -85,98 +135,154 @@ export async function getContractData(): Promise<ContractData> {
       transport: http(rpcUrl),
     });
 
-    // Step 1: Get taxProcessor address from token contract (or use env var if provided)
-    let taxProcessorAddress = TAX_PROCESSOR_ADDRESS_ENV;
-    
-    if (!taxProcessorAddress && TOKEN_ADDRESS) {
-      console.log("[Contract] Reading taxProcessor from token contract:", TOKEN_ADDRESS);
-      try {
-        taxProcessorAddress = await publicClient.readContract({
-          address: TOKEN_ADDRESS as `0x${string}`,
-          abi: TOKEN_ABI,
-          functionName: "taxProcessor",
-        }) as string;
-        console.log("[Contract] TaxProcessor address from token:", taxProcessorAddress);
-      } catch (error: unknown) {
-        console.error("[Contract] Error reading taxProcessor from token:", error);
-        throw new Error(`Failed to get taxProcessor address: ${error instanceof Error ? error.message : String(error)}`);
-      }
-    } else if (taxProcessorAddress) {
-      console.log("[Contract] Using TaxProcessor address from env var:", taxProcessorAddress);
-    } else {
-      throw new Error("Either TOKEN_CONTRACT_ADDRESS or TAX_PROCESSOR_ADDRESS must be set");
-    }
+    const tokenAddress = (opts?.tokenAddress || TOKEN_ADDRESS) as
+      | `0x${string}`
+      | undefined;
 
-    if (!taxProcessorAddress) {
-      throw new Error("TaxProcessor address not found");
+    if (!tokenAddress) {
+      throw new Error("TOKEN_CONTRACT_ADDRESS must be set");
     }
-
-    // Step 2: Read from tax processor contract
-    console.log("[Contract] Reading from TaxProcessor:", taxProcessorAddress);
 
     const [
-      totalLiquidityBNB,
-      liquidityTokensRaw,
-      fundsBNB,
-    ] = await Promise.all([
-      // totalQuoteAddedToLiquidity = total BNB added to liquidity
-      publicClient
-        .readContract({
-          address: taxProcessorAddress as `0x${string}`,
-          abi: TAX_PROCESSOR_ABI,
-          functionName: "totalQuoteAddedToLiquidity",
-        })
-        .catch((e: unknown) => {
-          console.warn("[Contract] totalQuoteAddedToLiquidity read error:", e);
-          return BigInt(0);
-        }),
-      // totalTokenAddedToLiquidity = total $战封神 tokens added to liquidity
-      publicClient
-        .readContract({
-          address: taxProcessorAddress as `0x${string}`,
-          abi: TAX_PROCESSOR_ABI,
-          functionName: "totalTokenAddedToLiquidity",
-        })
-        .catch((e: unknown) => {
-          console.warn("[Contract] totalTokenAddedToLiquidity read error:", e);
-          return BigInt(0);
-        }),
-      // totalQuoteSentToMarketing or marketQuoteBalance = funds/treasury BNB
-      publicClient
-        .readContract({
-          address: taxProcessorAddress as `0x${string}`,
-          abi: TAX_PROCESSOR_ABI,
-          functionName: "totalQuoteSentToMarketing",
-        })
-        .catch((e: unknown) => {
-          console.warn("[Contract] totalQuoteSentToMarketing not available, trying marketQuoteBalance...");
-          return publicClient
-            .readContract({
-              address: taxProcessorAddress as `0x${string}`,
-              abi: TAX_PROCESSOR_ABI,
-              functionName: "marketQuoteBalance",
-            })
-            .catch((e2: unknown) => {
-              console.warn("[Contract] marketQuoteBalance read error:", e2);
-              return BigInt(0);
-            });
-        }),
-    ]);
+      pairAddress,
+      weth,
+      quoteFounder,
+      quoteHolder,
+      feeAccumulated,
+      quoteClaimed,
+      feeFounder,
+      feeLiquidity,
+      tokenDecimals,
+    ] =
+      await Promise.all([
+        publicClient.readContract({
+          address: tokenAddress,
+          abi: TOKEN_ABI,
+          functionName: "pair",
+        }).catch(() => "0x0000000000000000000000000000000000000000"),
+        publicClient.readContract({
+          address: tokenAddress,
+          abi: TOKEN_ABI,
+          functionName: "WETH",
+        }).catch(() => "0x0000000000000000000000000000000000000000"),
+        publicClient.readContract({
+          address: tokenAddress,
+          abi: TOKEN_ABI,
+          functionName: "quoteFounder",
+        }).catch(() => BigInt(0)),
+        publicClient.readContract({
+          address: tokenAddress,
+          abi: TOKEN_ABI,
+          functionName: "quoteHolder",
+        }).catch(() => BigInt(0)),
+        publicClient.readContract({
+          address: tokenAddress,
+          abi: TOKEN_ABI,
+          functionName: "feeAccumulated",
+        }).catch(() => BigInt(0)),
+        publicClient.readContract({
+          address: tokenAddress,
+          abi: TOKEN_ABI,
+          functionName: "quoteClaimed",
+        }).catch(() => BigInt(0)),
+        publicClient.readContract({
+          address: tokenAddress,
+          abi: TOKEN_ABI,
+          functionName: "feeFounder",
+        }).catch(() => BigInt(0)),
+        publicClient.readContract({
+          address: tokenAddress,
+          abi: TOKEN_ABI,
+          functionName: "feeLiquidity",
+        }).catch(() => BigInt(0)),
+        publicClient.readContract({
+          address: tokenAddress,
+          abi: TOKEN_ABI,
+          functionName: "decimals",
+        }).catch(() => 18),
+      ]);
 
-    const fundsBalance = formatEther(fundsBNB);
-    const liquidityBalance = formatEther(totalLiquidityBNB);
-    const liquidityTokensFormatted = liquidityTokensRaw > BigInt(0) ? formatEther(liquidityTokensRaw) : undefined;
+    const quoteFounderRaw = quoteFounder as bigint;
+    const quoteHolderRaw = quoteHolder as bigint;
+    const feesFromQuotesRaw = quoteFounderRaw + quoteHolderRaw;
+    const feeAccumulatedRaw = feeAccumulated as bigint;
+    const quoteClaimedRaw = quoteClaimed as bigint;
+    const feeFounderRaw = feeFounder as bigint;
+    const feeLiquidityRaw = feeLiquidity as bigint;
+    const feesUnclaimedRaw =
+      feeAccumulatedRaw > quoteClaimedRaw
+        ? feeAccumulatedRaw - quoteClaimedRaw
+        : BigInt(0);
+
+    // "Fees received" (Funds) – per new requirement: feeFounder
+    const fundsBalance = formatUnits(feeFounderRaw, 18);
+
+    // "Liquidity" (BNB) – per new requirement: feeLiquidity
+    let liquidityBalance = formatUnits(feeLiquidityRaw, 18);
+    // liquidityTokens removed (no longer needed)
+
+    const pair = pairAddress as string;
+    const wbnb = (weth as string).toLowerCase();
+    if (pair && pair !== "0x0000000000000000000000000000000000000000") {
+      const [token0, token1, reserves] = await Promise.all([
+        publicClient.readContract({
+          address: pair as `0x${string}`,
+          abi: PAIR_ABI,
+          functionName: "token0",
+        }),
+        publicClient.readContract({
+          address: pair as `0x${string}`,
+          abi: PAIR_ABI,
+          functionName: "token1",
+        }),
+        publicClient.readContract({
+          address: pair as `0x${string}`,
+          abi: PAIR_ABI,
+          functionName: "getReserves",
+        }),
+      ]).catch((e) => {
+        console.warn("[Contract] pair read error:", e);
+        return [null, null, null] as const;
+      });
+
+      if (token0 && token1 && reserves) {
+        const t0 = (token0 as string).toLowerCase();
+        const t1 = (token1 as string).toLowerCase();
+        const [r0, r1] = reserves as unknown as [bigint, bigint, number];
+
+        const reserve0 = BigInt(r0 as any);
+        const reserve1 = BigInt(r1 as any);
+
+        // liquidityTokens removed (no longer needed)
+      }
+    }
 
     console.log("[Contract] Successfully read contract data:", {
       fundsBalance,
       liquidityBalance,
-      liquidityTokens: liquidityTokensFormatted,
     });
 
     return {
       fundsBalance,
       liquidityBalance,
-      liquidityTokens: liquidityTokensFormatted,
+      ...(opts?.includeDebug
+        ? {
+            debug: {
+              tokenAddress: tokenAddress,
+              pairAddress: pair,
+              weth: weth as string,
+              tokenDecimals: Number(tokenDecimals),
+              quoteFounder: formatUnits(quoteFounderRaw, 18),
+              quoteHolder: formatUnits(quoteHolderRaw, 18),
+              feeAccumulated: formatUnits(feeAccumulatedRaw, 18),
+              quoteClaimed: formatUnits(quoteClaimedRaw, 18),
+              feeFounder: formatUnits(feeFounderRaw, 18),
+              feeLiquidity: formatUnits(feeLiquidityRaw, 18),
+              feesFromQuotes: formatUnits(feesFromQuotesRaw, 18),
+              feesUnclaimed: formatUnits(feesUnclaimedRaw, 18),
+            },
+          }
+        : {}),
     };
   } catch (e) {
     console.warn("[Contract] getContractData error:", e);
