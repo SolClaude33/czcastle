@@ -105,6 +105,11 @@ export default function Leaderboard() {
 
   const formatNumber = (n: number) => n.toLocaleString();
   const formatBNB = (s: string) => (parseFloat(s) || 0).toFixed(4);
+  const formatBNBMax3 = (s: string) => {
+    const n = parseFloat(s) || 0;
+    const truncated = Math.trunc(n * 1000) / 1000;
+    return truncated.toFixed(3).replace(/\.?0+$/, "");
+  };
   
   // liquidityTokens removed (no longer needed)
 
@@ -372,7 +377,7 @@ export default function Leaderboard() {
                     <img src="/img/icons/coins_stack.png" alt="" className="w-12 h-12 mx-auto mb-2" style={{ imageRendering: "pixelated" }} />
                     <p className="text-sm text-[#5a4a3a] mb-1">{t("fees_received")}</p>
                     <p className="text-xl text-[#2a1810] font-bold" data-testid="value-fees-received">
-                      {treasuryLoading ? "…" : formatBNB(treasuryData?.fundsBalance ?? "0")} BNB
+                      {treasuryLoading ? "…" : formatBNBMax3(treasuryData?.fundsBalance ?? "0")} BNB
                     </p>
                   </div>
                   <div className="card-treasury" data-testid="card-rewards-paid">
