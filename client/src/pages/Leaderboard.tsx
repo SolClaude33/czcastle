@@ -230,8 +230,8 @@ export default function Leaderboard() {
 
           <div className="flex-1 grid grid-cols-2 gap-5 overflow-hidden">
             
-            <div className="flex flex-col gap-4">
-              <div className="panel-light flex-1 flex flex-col">
+            <div className="flex flex-col gap-4 min-h-0">
+              <div className="panel-light flex-1 flex flex-col min-h-0">
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
                   <div className="flex items-center gap-4">
                     <h2 className="text-3xl text-[#2a1810] tracking-wide" data-testid="text-hall-of-fame-title">
@@ -281,7 +281,7 @@ export default function Leaderboard() {
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+                <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
                   {isLoading ? (
                     <div className="flex items-center justify-center py-12">
                       <Loader2 className="w-12 h-12 animate-spin text-[#d4a853]" />
